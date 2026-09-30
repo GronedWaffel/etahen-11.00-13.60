@@ -1,0 +1,23 @@
+import {root,source,sdk,common,cxx,run} from './toolchain.mjs';
+import {mkdir,readdir,readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+const out=path.join(root,'build/bootstrapper');await mkdir(out,{recursive:true});
+const shellManifest=JSON.parse(await readFile(path.join(root,'build/shellui/manifest.json'),'utf8'));
+if(shellManifest.prepareOnly!==false)throw Error('Rebuild ShellUI without ETAHEN_PORT_PREPARE_ONLY before packaging the full payload');
+if(shellManifest.probeHooks)throw Error('Rebuild ShellUI without the temporary hook probe before packaging the full payload');
+const kstuff=path.join(source,'bootstrapper/assets/kstuff.elf');
+if(createHash('sha256').update(await readFile(kstuff)).digest('hex')!=='ab9a6cb4d3b1daf139d4d646e402b1cf569071acd64599c936d7a3a6164dc779')throw Error('Expected official kstuff-lite v1.11 release asset');
+const cardManifest=JSON.parse(await readFile(path.join(root,'build/toolbox-card-manifest.json'),'utf8'));
+const cardPath=path.join(root,'build/toolbox-card-install.elf');
+const cardHash=createHash('sha256').update(await readFile(cardPath)).digest('hex');
+if(cardManifest.files.find(f=>f.file==='toolbox-card-install.elf')?.sha256!==cardHash)throw Error('Card installer does not match its manifest');
+const assets={daemon:path.join(root,'build/daemon/daemon.elf'),util:path.join(root,'build/util/util.elf'),toolbox_card:cardPath,store_png:path.join(source,'bootstrapper/assets/store.png'),sicon:path.join(source,'bootstrapper/assets/etahen_sicon.png'),webman_icon:path.join(source,'bootstrapper/assets/webMAN.png'),kstuff,fps_prx:path.join(source,'bootstrapper/assets/fps.prx')};
+const embed=path.join(out,'embedded.S');
+await writeFile(embed,'.section .data\n'+Object.entries(assets).map(([n,p])=>`.balign 16\n.global ${n}_start\n${n}_start:\n.incbin "${p.replaceAll('\\','/')}"\n${n}_end:\n.balign 4\n.global ${n}_size\n${n}_size:\n.long ${n}_end - ${n}_start\n`).join('\n'));
+const files=[embed];for(const dir of ['bootstrapper/source','extern/tiny-json','extern/cJSON'])for(const f of await readdir(path.join(source,dir)))if(/\.(cpp|c|s)$/.test(f)&&!['daemon.c','elfldr.c','pt.c'].includes(f))files.push(path.join(source,dir,f));files.push(path.join(source,'lib/backtrace.cpp'));
+const objects=[path.join(root,'build/core/libelfldr-elfldr.c.o'),path.join(root,'build/core/libNineS-pt.c.o')];
+for(const file of files){const obj=path.join(out,path.basename(file)+'.o');run(['cc',...(file.endsWith('.cpp')?cxx:[]),...common,'-fexceptions','-I',path.join(source,'include'),'-I',path.join(source,'bootstrapper/include'),'-I',path.join(source,'libelfldr/include'),'-c',file,'-o',obj]);objects.push(obj);console.log('Compiled',path.basename(file));}
+const elf=path.join(root,'build/etaHEN-13.60-experimental.elf');
+run(['ld.lld','--no-dependent-libraries','-pie','--hash-style=gnu','-z','max-page-size=0x4000','-T',path.join(sdk,'ldscripts/elf_x86_64.x'),...objects,path.join(sdk,'target/lib/crt1.o'),'-L',path.join(sdk,'target/lib'),'-L',path.join(root,'dependencies/lib'),'-L',path.join(source,'lib'),'--start-group',...['libNineS','libelfldr'].map(n=>path.join(root,'build/core/'+n+'.a')),'-lsqlite3',...['c++','c++abi','unwind','c'].map(l=>path.join(sdk,'target/lib/lib'+l+'.a')),'-ldl','--end-group','--no-as-needed',...['SceSystemService','SceUserService','kernel_sys','SceNotification','SceLibcInternal','SceNet'].map(l=>'-l'+l),'-o',elf]);
+const data=await readFile(elf);const manifest={name:'Unofficial etaHEN 2.5B experimental 13.60 port',firmware:'13.60',bytes:data.length,sha256:createHash('sha256').update(data).digest('hex'),kstuff:'EchoStretch/kstuff-lite v1.11',hardwareValidated:false};await writeFile(path.join(root,'build/manifest.json'),JSON.stringify(manifest,null,2));console.log(JSON.stringify(manifest));

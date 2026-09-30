@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Application.Update",
+    "prologue": "55488bec4883ec604c896de84c8975f04c897df84c8bff498b47284c8bf04885"
+  },
+  {
+    "name": "OptionMenu.createJson",
+    "prologue": "554889e541574156415541545350803d8cc85f00004c89cb4d89c44989cd4989"
+  },
+  {
+    "name": "LncUtilWrapper.LaunchApp",
+    "prologue": "554889e5415741564155415453504989ce4189d44989f54989ffe8f977000048"
+  },
+  {
+    "name": "LncUtilWrapper.KillAppWithReason",
+    "prologue": "554889e5e8237900005dc3cccccccccc554889e5e82f7900005dc3cccccccccc"
+  },
+  {
+    "name": "LayerManager.UpdateImposeStatusFlag",
+    "prologue": "554889e55350803d61fa1400004889f34889f90f84900000004885c9744d4839"
+  },
+  {
+    "name": "GamePad.GetData",
+    "prologue": "554889e54156534883e4e04883ec404c8b35ca60100089f04889fb4889e6c5f8"
+  },
+  {
+    "name": "SettingsPlugin.CxmlUri",
+    "prologue": "554889e5803d76a55600004889f14889fa7419488b7220488b3d420f5700488b"
+  },
+  {
+    "name": "SettingPage.OnPressed",
+    "prologue": "554889e541574156415453803d958b5700004989d64989f74889fb0f84120100"
+  },
+  {
+    "name": "SettingPage.OnCreating",
+    "prologue": "554889e5415741565350803d738f5700004989f64889fb0f84f80000004531ff"
+  },
+  {
+    "name": "SettingsPlugin.GetString",
+    "prologue": "554889e54156534883ec30803daca75600004889fb488975e80f84c000000048"
+  },
+  {
+    "name": "BootHelper.Boot",
+    "prologue": "554889e54157415641554154534883ec48488b05d83415004989ce4889d34189"
+  },
+  {
+    "name": "PowerManager.Terminate",
+    "prologue": "554889e541574156415541545350803da63c1400000f84d40200004c8b25a668"
+  },
+  {
+    "name": "LayerManager.FindContainerSceneByPath",
+    "prologue": "554889e5803d530a1500004889f9742a4889cfe8705408004885c0741b488b08"
+  },
+  {
+    "name": "CaptureController.CaptureScreen",
+    "prologue": "554889e5415741564154534883ec104c8b258aba230089cb4989d74189f6498b"
+  },
+  {
+    "name": "EventManager.OnShareButton",
+    "prologue": "554889e54157415641554154534883ec484c8b3dc86223004989fc498b074889"
+  },
+  {
+    "name": "RuntimeAssembly.GetManifestResourceStream",
+    "prologue": "554889e54157415641554154534883ec184c8b2d784247014989f44989fe498b"
+  },
+  {
+    "name": "SystemSoftwareVersionInfo.set_DisplayVersion",
+    "prologue": "554889e5488b0df5cb0d00488d472048897720c1e809c60408015dc3cccccccc"
+  },
+  {
+    "name": "Diagnostics.CheckRunningOnMainThread",
+    "prologue": "554889e5415741565350803d3c171100007414e878ffffff84c0741e4883c408"
+  },
+  {
+    "name": "read",
+    "prologue": "554889e5415741564154534189ff644c8b2425100000004c89e74889d34989f6"
+  },
+  {
+    "name": "ioctl",
+    "prologue": "48c7c0360000004989ca0f057201c3488d0deef7ffffffe1cccccccccccccccc"
+  },
+  {
+    "name": "sceRegMgrGetInt",
+    "prologue": "554889e5534883ec18488b1d907d00004889f189fe488d55ec41b804000000bf"
+  }
+]

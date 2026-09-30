@@ -1,0 +1,75 @@
+{
+  "description": "External binary inputs used in the user-tested build. Obtain matching upstream inputs; these files are not committed.",
+  "inputs": [
+    {
+      "path": "Source Code/bootstrapper/assets/kstuff.elf",
+      "bytes": 1737080,
+      "sha256": "ab9a6cb4d3b1daf139d4d646e402b1cf569071acd64599c936d7a3a6164dc779"
+    },
+    {
+      "path": "Source Code/bootstrapper/assets/fps.prx",
+      "bytes": 14781,
+      "sha256": "d0a1b6540a714f8f3776061a059d7cb34a80bf1547b0b25f971d343be3ac1b5a"
+    },
+    {
+      "path": "Source Code/daemon/assets/ps5debug.elf",
+      "bytes": 4059688,
+      "sha256": "949b0e6e0fe3f24f4a820319fd76d9ccb92f9770cbb1a64b09a8eca5c1fc9ff3"
+    },
+    {
+      "path": "Source Code/daemon/assets/ps5-app-dumper.elf",
+      "bytes": 165248,
+      "sha256": "18483751ebaea6879b020a9dd87c0a4fb4f1bf09f3708d950362a483f78cc0d0"
+    },
+    {
+      "path": "Source Code/lib/libz.a",
+      "bytes": 154572,
+      "sha256": "05d46bf6d615dbd6c48171c43f17af58a456051e8dbecf340630daa102e022f1"
+    },
+    {
+      "path": "Source Code/lib/libcurl.a",
+      "bytes": 1571308,
+      "sha256": "5ca7ba7fe515e04254258c8ca53111d0278c2dfeec994f269da8ef31563694b3"
+    },
+    {
+      "path": "Source Code/lib/libwolfssl.a",
+      "bytes": 2196940,
+      "sha256": "9178603a98188c462d2e3bb93502bdce72fe3858b49cf9ed6f591a4b1dbd374f"
+    },
+    {
+      "path": "Source Code/lib/libminizip.a",
+      "bytes": 190466,
+      "sha256": "fa17ded0da938bc20f98c253b36c11efac0c75299cf590e75db17769fce0c84b"
+    },
+    {
+      "path": "Source Code/lib/libmicrohttpd.a",
+      "bytes": 409986,
+      "sha256": "9b44215e7a8a45e7d1f77f511ce80308e71472ae56bd2af13784d40341ae8d99"
+    },
+    {
+      "path": "Source Code/lib/libpsl.a",
+      "bytes": 115062,
+      "sha256": "aa08565624117abe10f8ed3a23000f793323c9f30f0b1c23d1df86d71a178911"
+    },
+    {
+      "path": "Source Code/lib/libzstd.a",
+      "bytes": 1233518,
+      "sha256": "d84ca33e966555f8c35940c097c491773b58a69af8438966e98ecff1cd11435c"
+    },
+    {
+      "path": "dependencies/lib/libcrypto.a",
+      "bytes": 13733936,
+      "sha256": "e8fe42a8159e30d4c8a2ab1be74ee10b119c3f547265e3cc872bdaecda620944"
+    },
+    {
+      "path": "dependencies/lib/libssl.a",
+      "bytes": 2479388,
+      "sha256": "db58e5bb95ee7dba9e83d192dbd3258b976956c05bb1876e1f7a0763d512807e"
+    },
+    {
+      "path": "dependencies/lib/libsqlite3.a",
+      "bytes": 5364206,
+      "sha256": "38662df0bc8403007bf08f89ef3e5394df3d8c7cdcdcf5d3f0325f25ebb40373"
+    }
+  ]
+}

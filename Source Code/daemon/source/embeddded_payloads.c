@@ -1,0 +1,53 @@
+ __asm__(
+
+
+    ".global ps5debug_start\n"
+	".type   ps5debug_start, @object\n"
+	".align  16\n"
+	"ps5debug_start:\n"
+    	".incbin \"assets/ps5debug.elf\"\n"
+	"ps5debug_end:\n"
+	    ".global ps5debug_size\n"
+	    ".type   ps5debug_size, @object\n"
+	    ".align  4\n"
+	"ps5debug_size:\n"
+    	".int    ps5debug_end - ps5debug_start\n"
+
+
+	".global shellui_elf_start\n"
+	".type   shellui_elf_start, @object\n"
+	".align  16\n"
+	"shellui_elf_start:\n"
+    	".incbin \"assets/shellui.elf\"\n"
+	"shellui_elf_end:\n"
+	    ".global shellui_elf_size\n"
+	    ".type   shellui_elf_size, @object\n"
+	    ".align  4\n"
+	"shellui_prx_size:\n"
+    	".int    shellui_elf_end - shellui_elf_start\n"
+
+	".global fps_elf_start\n"
+	".type   fps_elf_start, @object\n"
+	".align  16\n"
+	"fps_elf_start:\n"
+    	".incbin \"assets/fps_elf.elf\"\n"
+	"fps_elf_end:\n"
+	    ".global fps_elf_size\n"
+	    ".type   fps_elf_size, @object\n"
+	    ".align  4\n"
+	"fps_elf_size:\n"
+    	".int    fps_elf_end - fps_elf_start\n"
+
+	".global dumper_elf_start\n"
+	".type   dumper_elf_start, @object\n"
+	".align  16\n"
+	"dumper_elf_start:\n"
+    	".incbin \"assets/ps5-app-dumper.elf\"\n"
+	"dumper_elf_end:\n"
+	    ".global dumper_elf_size\n"
+	    ".type   dumper_elf_size, @object\n"
+	    ".align  4\n"
+	"dumper_elf_size:\n"
+    	".int    dumper_elf_end - dumper_elf_start\n"
+
+);

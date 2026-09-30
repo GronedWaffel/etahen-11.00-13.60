@@ -1,0 +1,31 @@
+/build/
+/artifacts/
+/dependencies/
+/research/
+/old versions/
+/PS5 technical writeups/
+/scripts/run-audit.mjs
+/send_payload.ps1
+*.a
+*.o
+*.so
+*.prx
+*.elf
+*.bin
+*.exe
+*.dll
+*.zip
+*.tar.gz
+*.pkg
+*.dmp
+*.log
+*.sxml
+*.tmp*
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+/Source Code/.gitmodules

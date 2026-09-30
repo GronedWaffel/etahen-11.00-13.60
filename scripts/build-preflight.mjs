@@ -1,0 +1,6 @@
+import {root,source,sdk,common,cxx,run} from './toolchain.mjs';import path from 'node:path';import {readFile,writeFile,mkdir} from 'node:fs/promises';import {createHash} from 'node:crypto';
+const out=path.join(root,'build');await mkdir(out,{recursive:true});const objects=[];
+for(const file of [path.join(root,'port/preflight.cpp'),path.join(source,'libhijacker/source/offsets.cpp')]){const obj=path.join(out,path.basename(file)+'.o');run(['cc',...cxx,...common,'-c',file,'-o',obj]);objects.push(obj);}
+const elf=path.join(out,'etahen-13.60-preflight.elf');run(['cc',...common,'-nostdlib','-pie','-Wl,--hash-style=gnu','-Wl,-z,max-page-size=0x4000','-Wl,-T,'+path.join(sdk,'ldscripts/elf_x86_64.x'),...objects,path.join(sdk,'target/lib/crt1.o'),'-L',path.join(sdk,'target/lib'),path.join(sdk,'target/lib/libc.a'),'-ldl','-lkernel_web','-lSceLibcInternal','-lSceNet','-o',elf]);
+const b=await readFile(elf);if(b.readUInt32LE()!==0x464c457f||b[4]!==2||b.readUInt16LE(18)!==62)throw Error('Invalid ELF');
+const manifest={name:'etaHEN 13.60 prerequisite diagnostic',diagnosticOnly:true,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex'),sdk:'v0.43',hardwareValidated:false};await writeFile(path.join(out,'preflight-manifest.json'),JSON.stringify(manifest,null,2));console.log(JSON.stringify(manifest));
