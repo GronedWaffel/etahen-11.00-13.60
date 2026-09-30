@@ -6,7 +6,9 @@ The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox
 
 **[Download the PS5 13.60 r2 release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r2)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
 
-**Using ShadowMount with our etaHEN? We recommend the supplied `shadowmountplus-1.7beta2-snipers1360-r1.elf`.** This custom build is matched to our bundled kstuff-lite v1.11 and disables incompatible legacy pause/resume writes on 13.60. Start etaHEN on a fresh jailbreak, wait until Toolbox opens normally, then load ShadowMount once. Do not load another kstuff or ShadowMount copy. The website handles the startup order automatically. Automated hosts can use the included `optional-shadowmount-13.60.elf` supervisor instead of the direct ShadowMount ELF; it contains the same custom payload and requires this updated etaHEN. Use one ShadowMount entry point, never both.
+**Using ShadowMount with our etaHEN? Download [ShadowMount-for-etaHEN-13.60.elf](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/ShadowMount-for-etaHEN-13.60.elf).** Load `etaHEN-13.60.elf` first on a fresh jailbreak, then this file once. It automatically waits for etaHEN Toolbox to finish initializing and checks for duplicate loads. It contains our custom ShadowMount build matched to bundled kstuff-lite v1.11. This is the loader used by our website and requires our r2 etaHEN.
+
+The separate `ShadowMount-13.60-manual-start.elf` is for advanced manual loading: it starts the same ShadowMount immediately, so you must wait until Toolbox opens normally yourself. **Choose one ShadowMount file; never load both.** The recommended file was previously named `optional-shadowmount-13.60.elf`; only its download name changed.
 
 ## What changed for 13.60
 
