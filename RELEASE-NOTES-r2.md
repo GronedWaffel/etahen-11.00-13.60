@@ -1,6 +1,6 @@
 # etaHEN 13.60 r2 + matched ShadowMountPlus
 
-**Recommended downloads: `etaHEN-13.60.elf` + [ShadowMount-for-etaHEN-13.60.elf](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/ShadowMount-for-etaHEN-13.60.elf).** Load etaHEN first, then the recommended ShadowMount file once. It automatically waits for Toolbox initialization and checks for duplicate loads. This is the guarded loader used by [sniperscheats.lol](https://sniperscheats.lol/), containing our custom ShadowMount build for the bundled kstuff-lite.
+**Recommended downloads: `etaHEN-13.60.elf` + [ShadowMount-from-sniperscheats.lol.elf](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/ShadowMount-from-sniperscheats.lol.elf).** Load etaHEN first, then the recommended ShadowMount file once. It automatically waits for Toolbox initialization and checks for duplicate loads. This is the guarded loader used by [sniperscheats.lol](https://sniperscheats.lol/), containing our custom ShadowMount build for the bundled kstuff-lite.
 
 ## Fixed in this update
 
@@ -13,12 +13,12 @@
 ## Downloads and loading order
 
 1. `etaHEN-13.60.elf` — the complete updated etaHEN payload, including the Toolbox card and bundled kstuff-lite. Load once after a fresh boot/jailbreak.
-2. **`ShadowMount-for-etaHEN-13.60.elf` — recommended.** Load once after starting our r2 etaHEN. It waits automatically until etaHEN is ready, then starts the custom ShadowMount. Do not also load another ShadowMount file or a separate kstuff.
+2. **`ShadowMount-from-sniperscheats.lol.elf` — recommended.** Load once after starting our r2 etaHEN. It waits automatically until etaHEN is ready, then starts the custom ShadowMount. Do not also load another ShadowMount file or a separate kstuff.
 
 <details>
-<summary>Advanced: immediate-start version</summary>
+<summary>Standalone ShadowMount (manual loading)</summary>
 
-`ShadowMount-13.60-manual-start.elf` runs the same custom ShadowMount immediately, without the loader's startup wait or duplicate checks. Use it only if you manage the loading order yourself: wait until Toolbox opens normally, then load it once. Use this file **instead of** the recommended loader, never alongside it.
+`Standalone-ShadowMount-manual-loading.elf` runs the same custom ShadowMount immediately, without the loader's startup wait or duplicate checks. Use it only if you manage the loading order yourself: wait until Toolbox opens normally, then load it once. Use this file **instead of** the recommended loader, never alongside it.
 
 </details>
 
