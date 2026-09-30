@@ -1,6 +1,6 @@
 # etaHEN 13.60 r2 + matched ShadowMountPlus
 
-**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/Standalone-ShadowMount-manual-loading.elf).** It is our custom ShadowMount build matched to the kstuff-lite bundled with this etaHEN. Load etaHEN first, wait until Toolbox opens normally, then load Standalone ShadowMount once.
+**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/etaHEN-13.60_Standalone-ShadowMount.elf).** It is our custom ShadowMount build matched to the kstuff-lite bundled with this etaHEN. Load etaHEN first, wait until Toolbox opens normally, then load Standalone ShadowMount once.
 
 ## Fixed in this update
 
@@ -13,7 +13,7 @@
 ## Downloads and loading order
 
 1. `etaHEN-13.60.elf` — the complete updated etaHEN payload, including the Toolbox card and bundled kstuff-lite. Load once after a fresh boot/jailbreak.
-2. **`Standalone-ShadowMount-manual-loading.elf` — recommended for this etaHEN 13.60 r2 build.** This starts ShadowMount immediately. **Wait until Toolbox opens normally before loading it once.** Do not also load another ShadowMount copy or a separate kstuff.
+2. **`etaHEN-13.60_Standalone-ShadowMount.elf` — recommended for this etaHEN 13.60 r2 build.** This starts ShadowMount immediately. **Wait until Toolbox opens normally before loading it once.** Do not also load another ShadowMount copy or a separate kstuff.
 
 The website already uses the matched builds and guarded loading order. Let its offline cache update before starting. Restart before replacing an already running payload.
 

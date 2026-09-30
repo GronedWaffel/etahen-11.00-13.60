@@ -6,7 +6,7 @@ The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox
 
 **[Download the PS5 13.60 r2 release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r2)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
 
-**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/Standalone-ShadowMount-manual-loading.elf).** This custom ShadowMount build is matched to bundled kstuff-lite v1.11. Load etaHEN first on a fresh jailbreak, wait until Toolbox opens normally, then load Standalone ShadowMount once. It starts immediately, so you must handle that loading order yourself. Do not load another ShadowMount copy or a separate kstuff. The website handles its own loading order automatically.
+**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/etaHEN-13.60_Standalone-ShadowMount.elf).** This custom ShadowMount build is matched to bundled kstuff-lite v1.11. Load etaHEN first on a fresh jailbreak, wait until Toolbox opens normally, then load Standalone ShadowMount once. It starts immediately, so you must handle that loading order yourself. Do not load another ShadowMount copy or a separate kstuff. The website handles its own loading order automatically.
 
 ## What changed for 13.60
 
