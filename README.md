@@ -4,6 +4,8 @@
 
 The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox card installer and regression tests is included. [Credits](CREDITS.md) · [Build instructions](BUILDING.md) · [Hardware validation](PORT-STATUS.md) · [Contributing](CONTRIBUTING.md) · [Original README](UPSTREAM-README.md)
 
+**[Download the PS5 13.60 ELF release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r1)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
+
 ## What changed for 13.60
 
 - Updated the runtime, injector and managed/native hooks for 13.60. Native hooks use process-private copy-on-write publication to avoid altering another process's shared code pages.
