@@ -1,6 +1,6 @@
 # etaHEN 13.60 r2 + matched ShadowMountPlus
 
-**Recommended pairing for this etaHEN 13.60 r2 build: `etaHEN-13.60.elf` + [ShadowMount-from-sniperscheats.lol.elf](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/ShadowMount-from-sniperscheats.lol.elf).** Load etaHEN first, then the recommended ShadowMount file once. It automatically waits for Toolbox initialization and checks for duplicate loads. This is the guarded loader used by [sniperscheats.lol](https://sniperscheats.lol/), containing our custom ShadowMount build for the bundled kstuff-lite.
+**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/Standalone-ShadowMount-manual-loading.elf).** It is our custom ShadowMount build matched to the kstuff-lite bundled with this etaHEN. Load etaHEN first, wait until Toolbox opens normally, then load Standalone ShadowMount once.
 
 ## Fixed in this update
 
@@ -13,16 +13,7 @@
 ## Downloads and loading order
 
 1. `etaHEN-13.60.elf` — the complete updated etaHEN payload, including the Toolbox card and bundled kstuff-lite. Load once after a fresh boot/jailbreak.
-2. **`ShadowMount-from-sniperscheats.lol.elf` — recommended for this etaHEN 13.60 r2 build.** Load once after starting our r2 etaHEN. It waits automatically until etaHEN is ready, then starts the custom ShadowMount. Do not also load another ShadowMount file or a separate kstuff.
-
-<details>
-<summary>Standalone ShadowMount (manual loading)</summary>
-
-`Standalone-ShadowMount-manual-loading.elf` runs the same custom ShadowMount immediately, without the loader's startup wait or duplicate checks. Use it only if you manage the loading order yourself: wait until Toolbox opens normally, then load it once. Use this file **instead of** the recommended loader, never alongside it.
-
-</details>
-
-**Already downloaded these files?** The recommended loader was previously called `optional-shadowmount-13.60.elf`. The manual-start version was `shadowmountplus-1.7beta2-snipers1360-r1.elf`. The ELF bytes are unchanged; the download names and instructions have been clarified.
+2. **`Standalone-ShadowMount-manual-loading.elf` — recommended for this etaHEN 13.60 r2 build.** This starts ShadowMount immediately. **Wait until Toolbox opens normally before loading it once.** Do not also load another ShadowMount copy or a separate kstuff.
 
 The website already uses the matched builds and guarded loading order. Let its offline cache update before starting. Restart before replacing an already running payload.
 
