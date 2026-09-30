@@ -1,5 +1,34 @@
 # Unofficial etaHEN 13.60 port — development status
 
+## Current r2: startup ordering and matched ShadowMount (2026-09-30)
+
+The user tested the updated website bundle on PS5 13.60 and confirmed Toolbox
+works again. They also reported that shutdown, restart and entering rest mode
+no longer freeze the console. These are user-confirmed checks on their console;
+they do not establish rest/wake behavior with mounted games or universal
+compatibility of every menu action. The earlier entries below are historical.
+
+Tested etaHEN: 30,416,848 bytes, SHA-256
+`f1befb433ca8f3d838629b543e4481fa09a5fc7b56cf34c51cb2241c57c8951a`.
+Matched ShadowMountPlus `1.7beta2-snipers1360-r1`: 2,438,024 bytes, SHA-256
+`563f72b8857ae7f115c237acc618308d96651093187891679002d9a3b710bf0d`.
+The tested host used its guarded supervisor, SHA-256
+`77a27dd5a59a11dd4f20231501d603408403e9b266ebc5b5ef67c3ac7c6ea16f`.
+
+Read-only diagnostics of the preceding failure showed a restarted ShellUI and
+failed Toolbox initialization while ShadowMount remained running. The host
+could accept yesterday's success log while the new daemon was still starting.
+r2 replaces that check with a boot-local acknowledgement bound to both live
+processes and does not emit startup success after failed injection. Both etaHEN
+and custom ShadowMount also avoid legacy pointer-tag pause/resume writes with
+the bundled INT3-based kstuff-lite. See
+[the compatibility record](KSTUFF-SHADOWMOUNT-COMPATIBILITY.md).
+
+All 9 etaHEN and 32 host/native regression tests passed. Hosted ELF and source
+checksums were verified before the user's successful test. The generic build
+manifest keeps `hardwareValidated: false` because it is not an all-feature
+certification; the specific successful checks above are the validation record.
+
 ## URL-loader self-detection fix
 
 The website successfully completed the jailbreak and reached etaHEN, but the bootstrap reported an existing instance even on a fresh boot. Unlike raw TCP loading (`payload.elf`), URL loading names the process after its filename (`etaHEN-13.60-….elf`). The bootstrap's substring lookup matched itself. The shared bootstrap process lookup now excludes its own PID while retaining matches for other etaHEN services/bootstraps. This also prevents the later legacy cleanup loop from targeting the bootstrap itself. The restart guard is retained and logs any matching **other** PID.

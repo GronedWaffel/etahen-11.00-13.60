@@ -1,5 +1,6 @@
 #include "port_toolbox_route.hpp"
 #include "port_stage.hpp"
+#include "port_startup_state.hpp"
 /* Copyright (C) 2025 etaHEN / LightningMods
 
 This program is free software; you can redistribute it and/or modify it
@@ -299,10 +300,28 @@ int ItemzLaunchByUri(const char* uri) {
 }
 
 bool cmd_enable_toolbox();
+int get_shellui_pid();
+#ifdef ETAHEN_PORT_1360
+static bool publish_startup(bool initialized, int shellui, bool toolboxEnabled) {
+    PortStartupRecord record;
+    record.critical=getpid();record.shellui=shellui;
+    record.status=initialized ? (toolboxEnabled ? PortStartupStatus::ToolboxReady : PortStartupStatus::ToolboxDisabled) : PortStartupStatus::Failed;
+    const char* temporary="/system_tmp/etahen-1360-startup.tmp";
+    FILE* file=fopen(temporary,"wb");if(!file)return false;
+    bool ok=fwrite(&record,1,sizeof(record),file)==sizeof(record);
+    if(fflush(file)!=0 || fsync(fileno(file))!=0)ok=false;
+    if(fclose(file)!=0)ok=false;
+    if(ok && rename(temporary,PORT_STARTUP_PATH)==0)return true;
+    unlink(temporary);return false;
+}
+#endif
 void LoadSettings();
 bool is_800 = false;
 int main() {
     port_stage("critical","entered main");
+#ifdef ETAHEN_PORT_1360
+    unlink(PORT_STARTUP_PATH);
+#endif
     char buz[255];
     pthread_t fifo_thr = nullptr;
     pthread_t pt_thr = nullptr;
@@ -360,8 +379,10 @@ int main() {
 
     etaHEN_log("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No", sys_ver.version);
     // Initialize toolbox if needed
+    const int startup_shellui=get_shellui_pid();
+    bool startup_initialized=true;
     if (global_conf.toolbox_auto_start) {
-        cmd_enable_toolbox();
+        startup_initialized=cmd_enable_toolbox();
     }
     else if (!global_conf.toolbox_auto_start) {
         notify(true, "the etaHEN Toolbox auto start is disabled in the config.ini\n\n"
@@ -430,10 +451,11 @@ int main() {
      "  \"createdDateTime\": \"2025-12-14T03:14:51.473Z\",\n"
      "  \"localNotificationId\": \"588193127\"\n"
      "}";
-	sceNotificationSend(0xFE, true, &json_payload[0]);
+	if(startup_initialized)sceNotificationSend(0xFE, true, &json_payload[0]);
 
 
-    etaHEN_log("StartUp thread created!! - welcome to etaHEN");
+    if(startup_initialized)etaHEN_log("StartUp thread created!! - welcome to etaHEN");
+    else etaHEN_log("Toolbox startup failed; optional payload startup is blocked");
 
     // Launch the appropriate app based on configuration
     const char *URI = nullptr;
@@ -443,7 +465,7 @@ int main() {
         break;
     }
     case TOOLBOX: {
-        if (global_conf.toolbox_auto_start)
+        if (global_conf.toolbox_auto_start && startup_initialized)
             URI = ETAHEN_TOOLBOX_ROOT_URI;
         else
             URI = "pshomeui:navigateToHome?bootCondition=psButton";
@@ -470,6 +492,16 @@ int main() {
     }
 
     unlink("/system_tmp/lite_mode");
+
+#ifdef ETAHEN_PORT_1360
+    // Finish injection and startup actions before optional payloads touch
+    // ShellCore or start another injector. A restarted ShellUI is not success.
+    if(get_shellui_pid()!=startup_shellui)startup_initialized=false;
+    if(!publish_startup(startup_initialized,startup_shellui,global_conf.toolbox_auto_start)) {
+        etaHEN_log("Could not publish startup acknowledgement; optional payloads remain blocked");
+        port_stage("critical","startup acknowledgement could not be published");
+    } else port_stage("critical",startup_initialized ? "startup acknowledgement published" : "startup failed; optional payloads blocked");
+#endif
 
     // Main loop to keep the process running
     while (true) {

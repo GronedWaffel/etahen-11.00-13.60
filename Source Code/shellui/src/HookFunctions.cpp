@@ -375,7 +375,9 @@ void CallDecrypt(unsigned char* bundleData, int bundleOffset, int bundleSize, in
 void pause_resume_kstuff(KstuffPauseStatus opt, bool notify_user)
 {
 #ifdef ETAHEN_PORT_1360
-  if(!port_kstuff_hooks_installed()){if(notify_user)notify("No compatible installed kstuff hooks detected");return;}
+  shellui_log("Legacy kstuff toggle skipped: bundled kstuff-lite v1.11 uses INT3 tables");
+  if(notify_user && opt!=NOT_PAUSED)notify("kstuff-lite stays active; legacy pause is not supported by this build");
+  return;
 #endif
   intptr_t sysentvec = 0;
   intptr_t sysentvec_ps4 = 0;
@@ -1798,12 +1800,15 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
       disable_for_rest_mode = !disable_for_rest_mode; //global_conf.disable_toolbox_auto_start_for_rest_mode 
     }
     else if (id == "id_pause_kstuff"){
+#ifdef ETAHEN_PORT_1360
+        notify("kstuff-lite stays active; legacy pause is not supported by this build");
+        return oOnPress(Instance, element, e);
+#endif
         if (atoi(value.c_str()) == kstuff_pause_opt) {
             shellui_log("kstuff_pause_opt already %s", kstuff_pause_opt ? "Enabled" : "Disabled");
             return oOnPress(Instance, element, e);
         }
-        kstuff_pause_opt = atoi(value.c_str());
-        pause_resume_kstuff((KstuffPauseStatus)kstuff_pause_opt, true);
+        pause_resume_kstuff((KstuffPauseStatus)atoi(value.c_str()), true);
             
     }
     else if (id == "id_cheats_shortcut") {

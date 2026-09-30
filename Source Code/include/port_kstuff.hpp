@@ -17,14 +17,9 @@ inline PortKstuffSnapshot port_read_kstuff_state(){
 inline bool port_kstuff_hooks_installed(){
  return port_read_kstuff_state().classify(KERNEL_ADDRESS_DATA_BASE)==PortKstuffState::Installed;
 }
-struct PortKstuffPause {
- intptr_t native=KERNEL_ADDRESS_DATA_BASE+0xDDD8F8+14,compat=KERNEL_ADDRESS_DATA_BASE+0xDDDA70+14;
- uint16_t savedNative=0,savedCompat=0;bool changed=false;
- PortKstuffPause(){
-  if(!port_kstuff_hooks_installed())return;
-  savedNative=kernel_getshort(native);savedCompat=kernel_getshort(compat);
-  if((savedNative!=0xffff&&savedNative!=0xdeb7)||(savedCompat!=0xffff&&savedCompat!=0xdeb7))return;
-  changed=true;kernel_setshort(native,0xffff);kernel_setshort(compat,0xffff);
- }
- ~PortKstuffPause(){if(changed){kernel_setshort(native,savedNative);kernel_setshort(compat,savedCompat);}}
-};
+// Injection worked with canonical INT3 tables on this port. A legacy "pause"
+// wrote the same 0xffff tag, doing nothing; "resume" poisoned those tables.
+// Do not alter them. Refuse an unexpected state rather than repair live hooks.
+inline bool port_kstuff_injection_ready(){
+ return port_read_kstuff_state().injectionReady(KERNEL_ADDRESS_DATA_BASE);
+}

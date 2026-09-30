@@ -21,6 +21,7 @@ The upstream README is preserved in [UPSTREAM-README.md](UPSTREAM-README.md), in
 - [OnionHEN](https://github.com/aydencharles/onionHEN): newer-firmware legacy Settings navigation reference.
 - [PS5 File Explorer](https://github.com/juma-sayeh/PS5-File-Explorer): application-card metadata and installation reference.
 - [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus): newer application registration API reference.
+- The optional `ShadowMountPlus 1.7beta2-snipers1360-r1` release asset is an unofficial integration build of Drakmor's ShadowMountPlus, with upstream contributions and credits to VoidWhisper, Gezine, Earthonion, EchoStretch and the community. Its GPL license and original notices are preserved. Our changes disable incompatible legacy kstuff pause/resume writes on 13.60. The attached combined source archive includes the modified source, build script, supervisor and tests; it is not presented as an upstream ShadowMountPlus release.
 - [ps5-payload-dev/elfldr](https://github.com/ps5-payload-dev/elfldr) and [ftpsrv](https://github.com/ps5-payload-dev/ftpsrv): ELF loading, runtime and memory access references.
 
 The project retains etaHEN's [GPLv3 LICENSE](LICENSE). Third-party components are governed by their own notices. No ownership of upstream projects is claimed, and this port is not affiliated with Sony Interactive Entertainment.

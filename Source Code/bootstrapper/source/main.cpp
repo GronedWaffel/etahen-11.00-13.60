@@ -1068,6 +1068,11 @@ int main(void) {
     notify("Unable to raise privileges");
     return -1;
   }
+#ifdef ETAHEN_PORT_1360
+  // Clear before spawning the critical daemon, even if its PID is reused.
+  unlink("/system_tmp/etahen-1360-startup");
+  unlink("/system_tmp/etahen-1360-startup.tmp");
+#endif
 
 #if BETA == 1
   printf("Get_code %d", GetDecryptedConsoleCode(

@@ -1108,6 +1108,11 @@ int main(int argc, char const *argv[]) {
 
   shellui_log("Starting hooking...");
   if (if_exists("/system_tmp/kstuff_paused")) {
+#ifdef ETAHEN_PORT_1360
+    // A marker from the legacy injector is not evidence that INT3 hooks are
+    // paused. Do not poison its tables or spin forever waiting for mprotect.
+    unlink("/system_tmp/kstuff_paused");
+#else
     shellui_log("Kstuff Paused, resuming kstuff");
     pause_resume_kstuff(NOT_PAUSED, false);
     unlink("/system_tmp/kstuff_paused");
@@ -1116,6 +1121,7 @@ int main(int argc, char const *argv[]) {
         klog_puts("sceKernelMprotect failed, retrying...");
         sleep(1);
     }
+#endif
   }
 
   has_hv_bypass = (sceKernelMprotect( & buz[0], 100, 0x7) == 0);

@@ -572,6 +572,12 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
     break;
   }
   case BREW_UTIL_DOWNLOAD_KSTUFF: {
+#ifdef ETAHEN_PORT_1360
+      // This port deliberately ignores external kstuff. Do not fetch a
+      // different project's "latest" asset and report a fictitious upgrade.
+      notify(true, "13.60 uses bundled kstuff-lite v1.11. Update etaHEN to change kstuff.");
+      reply(sender_app, true);
+#else
       notify(true, "Attempting to Download kstuff ...");
       if (!download_file("https://github.com/EchoStretch/kstuff/releases/latest/download/kstuff.elf",
           "/data/etaHEN/kstuff.elf")) {
@@ -583,6 +589,7 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
 
       notify(true, "Successfully downloaded latest kstuff");
       reply(sender_app, false);
+#endif
       break;
   }
   case BREW_UTIL_RELOAD_CHEATS: {

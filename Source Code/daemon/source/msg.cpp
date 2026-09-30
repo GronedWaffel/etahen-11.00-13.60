@@ -152,7 +152,8 @@ static bool remount(const char *dev, const char *path, int mnt_flag) {
 bool pause_resume_kstuff()
 {
 #ifdef ETAHEN_PORT_1360
-  if(!port_kstuff_hooks_installed()){etaHEN_log("No compatible installed kstuff hooks; refusing to rewrite syscall tables");return false;}
+  etaHEN_log("Legacy kstuff toggle skipped: bundled kstuff-lite v1.11 uses INT3 tables");
+  return false;
 #endif
   intptr_t sysentvec = 0;
   intptr_t sysentvec_ps4 = 0;
@@ -902,7 +903,14 @@ bool cmd_enable_fps_new(int appid) {
 
     sleep(5);
 
+#ifdef ETAHEN_PORT_1360
+    if(!port_kstuff_injection_ready()){
+        notify(true, "Unexpected kstuff table state. Restart before FPS injection.");
+        return false;
+    }
+#endif
     SuspendApp(appid);
+#ifndef ETAHEN_PORT_1360
     char buz[100] = { 0 };
     if (sceKernelMprotect(&buz[0], 100, 0x7) == 0) {
         if (pause_resume_kstuff()) {
@@ -910,22 +918,29 @@ bool cmd_enable_fps_new(int appid) {
             touch_file("/system_tmp/kstuff_paused");
         }
     }
+#endif
 
     int pid = get_game_pid();
     if (pid < 0) {
+#ifndef ETAHEN_PORT_1360
         pause_resume_kstuff();
+#endif
         notify(true, "Failed to get game pid");
         return false;
     }
 
     if (!Inject_Toolbox(pid, fps_elf_start)) {
+#ifndef ETAHEN_PORT_1360
         pause_resume_kstuff();
+#endif
         ForceKillProc(pid);
         notify(true, "Failed to inject fps");
         return false;
     }
 
+#ifndef ETAHEN_PORT_1360
     pause_resume_kstuff();
+#endif
 
     sleep(1);
     ResumeApp(pid);
@@ -994,10 +1009,7 @@ bool cmd_enable_fps(int appid) {
 bool cmd_enable_toolbox(){
     port_stage("critical","before Toolbox kstuff-state check");
     int wait = 0;
-#ifdef ETAHEN_PORT_1360
-    PortKstuffPause paused_kstuff;
-    port_stage("critical","Toolbox kstuff-state check returned");
-#else
+#ifndef ETAHEN_PORT_1360
     char buz[100] = {0};
     if(sceKernelMprotect(&buz[0], 100, 0x7) == 0){
         if(pause_resume_kstuff()){
@@ -1029,6 +1041,12 @@ bool cmd_enable_toolbox(){
     int active_pid=-1;FILE* port_pid=fopen("/system_tmp/etahen-1360-toolbox.pid","r");
     if(port_pid){fscanf(port_pid,"%d",&active_pid);fclose(port_pid);}
     if(active_pid==pid){etaHEN_log("Toolbox already active in this ShellUI process");return true;}
+    // Reopening an already injected Toolbox must not briefly toggle kstuff.
+    if(!port_kstuff_injection_ready()){
+      notify(true,"Unexpected kstuff table state. Restart before Toolbox injection.");
+      return false;
+    }
+    port_stage("critical","Toolbox kstuff-state check returned");
     unlink("/system_tmp/toolbox_online");
 #endif
     port_stage("critical","before Toolbox injection");

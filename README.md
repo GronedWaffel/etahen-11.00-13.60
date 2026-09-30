@@ -4,10 +4,14 @@
 
 The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox card installer and regression tests is included. [Credits](CREDITS.md) · [Build instructions](BUILDING.md) · [Hardware validation](PORT-STATUS.md) · [Contributing](CONTRIBUTING.md) · [Original README](UPSTREAM-README.md)
 
-**[Download the PS5 13.60 ELF release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r1)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
+**[Download the PS5 13.60 r2 release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r2)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
+
+**Using ShadowMount with our etaHEN? We recommend the supplied `shadowmountplus-1.7beta2-snipers1360-r1.elf`.** This custom build is matched to our bundled kstuff-lite v1.11 and disables incompatible legacy pause/resume writes on 13.60. Start etaHEN on a fresh jailbreak, wait until Toolbox opens normally, then load ShadowMount once. Do not load another kstuff or ShadowMount copy. The website handles the startup order automatically. Automated hosts can use the included `optional-shadowmount-13.60.elf` supervisor instead of the direct ShadowMount ELF; it contains the same custom payload and requires this updated etaHEN. Use one ShadowMount entry point, never both.
 
 ## What changed for 13.60
 
+- r2 fixes optional payloads starting before Toolbox initialization by replacing the persistent-log readiness check with a boot-local acknowledgement tied to the current etaHEN and ShellUI processes. Failed Toolbox initialization stops the optional sequence.
+- r2 keeps bundled kstuff-lite active and removes incompatible legacy pause/resume controls. The matched ShadowMount build applies the same protection. The user confirmed Toolbox works and the previous shutdown, restart and rest-mode-entry freezes are resolved on their 13.60 console.
 - Updated the runtime, injector and managed/native hooks for 13.60. Native hooks use process-private copy-on-write publication to avoid altering another process's shared code pages.
 - Added an **etaHEN Toolbox home-screen card**, automatically installed by the main ELF and restored if deleted. It opens the working legacy Settings route; the normal Sony Debug Settings menu remains available.
 - Added **Start PS5Debug-NG** under Services, with duplicate-load protection. The bundled input is PS5Debug-NG 1.3.2. It starts on demand rather than automatically.
@@ -21,10 +25,10 @@ This port targets **PS5 13.60 only** and requires a compatible jailbreak and ELF
 
 The user confirmed the corrected website flow, fresh startup, automatic card installation, Toolbox navigation and PS5Debug Services action. FTP, service startup and guarded hook installation also have scoped hardware checks. This does **not** certify every original etaHEN feature or other firmware. The [validation record](PORT-STATUS.md) distinguishes successful checks from earlier diagnostic failures; referenced raw console artifacts are intentionally not published.
 
-The tested main ELF is `etaHEN-13.60-experimental.elf` (30,415,336 bytes), SHA-256:
+The r2 main ELF is published as `etaHEN-13.60.elf` (30,416,848 bytes), SHA-256:
 
 ```
-2d43efc4111991772bfc4d331ebfd6a88395efa686da3114ba8406323b281fbe
+f1befb433ca8f3d838629b543e4481fa09a5fc7b56cf34c51cb2241c57c8951a
 ```
 
 Card installation uses the newer firmware's application registration scan, which may also register other already-staged application folders. An ownership receipt and asset comparison skip repeat registration when the card is current. See [Toolbox card details](TOOLBOX-CARD.md).

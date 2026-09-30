@@ -44,19 +44,10 @@
         </setting_list>
 
           <!-- Kstuff menu -->
-        <setting_list id="id_kstuff_opts" title="Kstuff Menu" initial_focus_to="id_pause_kstuff">
-
-            <list id="id_pause_kstuff" title="Pause Kstuff" second_title="Pausing kstuff will greatly improve overrall system performance but FPKGs will NOT work" confirm="PS4 FPKGs, PS5 FGs and any FPKG Homebrew apps will NOT work once paused depending on the option selected" confirm_phrase="OK, Cancel" >
-              <list_item id="id_pause_kstuff_1" title="Not Paused" value="0"/>
-              <list_item id="id_pause_kstuff_2" title="PS5 sysentvec Only" value="1"/>
-              <list_item id="id_pause_kstuff_3" title="PS4 sysentvec Only" value="2"/>
-              <list_item id="id_pause_kstuff_4" title="Pause Both PS5 and PS4 sysentvecs" value="3"/>
-            </list>
-            <toggle_switch id="id_pause_kstuff_on_open" title="Pause Kstuff on Game Launch" description="This will pause Kstuff when launching games or apps after the provided delay" value="0"/>
-             <text_field id="id_pause_kstuff_on_open_secs" title="Kstuff pause delay" second_title="Delay in seconds used for auto pausing kstuff after app launch" keyboard_type="number" min_length="1" max_length="3"/>
-            <toggle_switch id="id_enable_kstuff_on_close" title="Unpause Kstuff on Game Close" description="This will unpause Kstuff when closing games or apps, Note: if not paused no action will be taken" value="0"/>
-            <button id="id_download_kstuff" title="Replace kstuff with the latest Kstuff via Github" description="Downloads and Installs the latest kstuff from EchoStretch's Github Repo to /data/etaHEN/kstuff.elf, will replace the one etaHEN auto loads on startup"/>
-            <button id="id_delete_kstuff" title="Delete Kstuff installed via Github" description="This will switch back to etaHENs built-in kstuff"/>
+        <setting_list id="id_kstuff_opts" title="Kstuff Menu" initial_focus_to="id_kstuff_autoload">
+            <label id="id_kstuff_build_info" title="Bundled kstuff-lite v1.11 for 13.60" style="left"/>
+            <label id="id_kstuff_control_info" title="Keep kstuff-lite active. Legacy pause controls do not apply." style="left"/>
+            <label id="id_kstuff_update_info" title="Update etaHEN to update its bundled kstuff." style="left"/>
             <toggle_switch id="id_kstuff_autoload" title="Auto load Kstuff on etaHEN startup"  value="0"/>
 
        </setting_list>

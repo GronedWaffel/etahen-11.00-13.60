@@ -35,12 +35,16 @@ int main(){
  const uint64_t base=UINT64_C(0xffffffff88000000);
  PortKstuffSnapshot state{base+0x1B6E50,base+0x1AE5C0,0xffff,0xffff,true};
  assert(state.classify(base)==PortKstuffState::Unmodified);
- state.readable=false;assert(state.classify(base)==PortKstuffState::Unknown);state.readable=true;
+ assert(state.injectionReady(base)); // no_kstuff mode remains usable
+ state.readable=false;assert(state.classify(base)==PortKstuffState::Unknown);assert(!state.injectionReady(base));state.readable=true;
  state.native=base+0x4000000;state.compat=base+0x5000000;state.xts=state.hmac=0xdeb7;
- assert(state.classify(base)==PortKstuffState::Installed); // paused sysent tags
+ assert(state.classify(base)==PortKstuffState::Installed); // active INT3 tables
+ assert(state.injectionReady(base));
  state.native=(state.native&UINT64_C(0x0000ffffffffffff))|UINT64_C(0xdeb7000000000000);
+ assert(!state.injectionReady(base)); // one legacy-poisoned table is enough to refuse
  state.compat=(state.compat&UINT64_C(0x0000ffffffffffff))|UINT64_C(0xdeb7000000000000);
- assert(state.classify(base)==PortKstuffState::Installed); // active sysent tags
+ assert(state.classify(base)==PortKstuffState::Installed); // installed but legacy-poisoned
+ assert(!state.injectionReady(base));
  state.hmac=0xffff;assert(state.classify(base)==PortKstuffState::Unknown);
  state.native=0;assert(state.classify(base)==PortKstuffState::Unknown);
  for(uint8_t present: {uint8_t(0),uint8_t(1)}){

@@ -4,6 +4,14 @@
 enum class PortKstuffState { Unmodified, Installed, Unknown };
 struct PortKstuffSnapshot {
  uint64_t native=0,compat=0;uint16_t xts=0,hmac=0;bool readable=false;
+ // kstuff-lite v1.11 hooks selected entries in copied tables with INT3.
+ // Its table pointers are canonical even while the hooks are active.
+ // 0xdeb7/0xffff pointer poisoning belongs to the legacy implementation.
+ bool injectionReady(uint64_t base)const{
+  const auto state=classify(base);
+  return state==PortKstuffState::Unmodified ||
+   (state==PortKstuffState::Installed && (native>>48)==0xffff && (compat>>48)==0xffff);
+ }
  PortKstuffState classify(uint64_t base)const{
   if(!readable||(base>>48)!=0xffff)return PortKstuffState::Unknown;
   const auto nativeTag=native>>48,compatTag=compat>>48;
