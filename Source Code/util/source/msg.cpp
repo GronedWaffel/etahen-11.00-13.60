@@ -546,11 +546,9 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
     json_t const *target_repo_property = json_getProperty(my_json, "repo");
     int repo = json_getInteger(target_repo_property);
 
-    if(!check_for_new_commit(repo)){
-      etaHEN_log("Failed to check for new commit or is up to date");
-      reply(sender_app, false);
-      break;
-    }
+    // This is an explicit Download/Update request. A previous commit marker
+    // cannot prove that extraction completed, or that local indexes still
+    // contain this repository after the other source was downloaded.
     notify(true, "Downloading the latest %s Cheats repo....", repo ? "GoldHEN PS4" : "etaHEN PS5");
     if (!download_file(repo ? "https://api.github.com/repos/GoldHEN/GoldHEN_Cheat_Repository/zipball" : "https://api.github.com/repos/etaHEN/PS5_Cheats/zipball",
                        "/data/etaHEN/cheats.zip")) {
@@ -566,7 +564,7 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
     }
 
     unlink("/data/etaHEN/cheats.zip");
-    MakeInitialCheatCache(NULL);
+    ReloadCheatsCache(NULL);
     notify(true, "Successfully updated & refreshed the etaHEN Cheats with the latest cheats repo");
     reply(sender_app, false);
     break;

@@ -1,0 +1,4 @@
+import {root,source,sdk,common,cxx,run} from './toolchain.mjs';import path from 'node:path';
+const object=path.join(root,'build/cheat-engine-probe.o');
+run(['cc',...cxx,...common,'-fexceptions','-ffunction-sections','-fdata-sections','-I',path.join(source,'include'),'-I',path.join(source,'util/include'),'-c',path.join(root,'port/cheat-engine-probe.cpp'),'-o',object]);
+run(['ld.lld','--gc-sections','--no-dependent-libraries','-pie','--hash-style=gnu','-z','max-page-size=0x4000','-T',path.join(sdk,'ldscripts/elf_x86_64.x'),object,path.join(root,'build/core/libNineS-pt.c.o'),path.join(root,'build/util/extern-pugixml-1.15-pugixml.cpp.o'),path.join(sdk,'target/lib/crt1.o'),'-L',path.join(sdk,'target/lib'),'--start-group',path.join(root,'build/core/libNineS.a'),...['c++','c++abi','unwind','c'].map(n=>path.join(sdk,'target/lib/lib'+n+'.a')),'-ldl','--end-group','-lkernel_web','-lSceLibcInternal','-o',path.join(root,'build/cheat-engine-probe.elf')]);

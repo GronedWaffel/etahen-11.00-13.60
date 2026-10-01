@@ -22,6 +22,7 @@ along with this program; see the file COPYING. If not, see
 #include <libgen.h>
 #include <ps5/klog.h>
 #include "pt.h"
+#include "../../libNineS/include/pt.h"
 
 typedef struct app_info {
   uint32_t app_id;
@@ -88,14 +89,21 @@ atomic_bool not_connected = false;
 
 
  int pt_detach_proc(pid_t pid, int sig) {
+#ifdef ETAHEN_PORT_1360
+     return pt_detach(pid, sig);
+#else
      if (sys_ptrace(PT_DETACH, pid, 0, sig) == -1) {
          return -1;
      }
 
      return 0;
+#endif
  }
 
  int pt_attach_proc(pid_t pid) {
+#ifdef ETAHEN_PORT_1360
+     return pt_attach(pid);
+#else
      if (sys_ptrace(PT_ATTACH, pid, 0, 0) == -1) {
          return -1;
      }
@@ -105,6 +113,7 @@ atomic_bool not_connected = false;
      }
 
      return 0;
+#endif
  }
 
 int get_ip_address(char *ip_address)

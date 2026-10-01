@@ -531,11 +531,11 @@ bool CheatManager::ToggleCheat(int pid, const std::string &title_id,
     return false;
   }
 
-  OrbisKernelSwVersion sys_ver;
-  sceKernelGetProsperoSystemSwVersion(&sys_ver);
+  OrbisKernelSwVersion sys_ver = {};
+  if (sceKernelGetProsperoSystemSwVersion(&sys_ver) < 0) return false;
   int fw = (sys_ver.version >> 16);
 
-  if (cheat_index < 0 || cheat_index > currentGameCheat->cheats.size()) {
+  if (cheat_index < 0 || static_cast<size_t>(cheat_index) >= currentGameCheat->cheats.size()) {
     etaHEN_log("Cheat index %d is 0 or greater than the size", cheat_index);
     return false;
   }
@@ -543,6 +543,19 @@ bool CheatManager::ToggleCheat(int pid, const std::string &title_id,
 
   CheatInfo &cheat = currentGameCheat->cheats[cheat_index];
   etaHEN_log("Toggling cheat %s", cheat.name.c_str());
+#ifdef ETAHEN_PORT_1360
+  // sys_dynlib_get_list/get_info_2 no longer resolves the game on 13.60.
+  // The SDK's kernel dynlib walker supplies the actual loaded module base.
+  uint32_t module_handle = 0;
+  if (kernel_dynlib_handle(pid, cheat.module_name.c_str(), &module_handle)) {
+    etaHEN_log("Unable to resolve cheat module %s in pid %d", cheat.module_name.c_str(), pid);
+    return false;
+  }
+  uint64_t baseAddress = kernel_dynlib_mapbase_addr(pid, module_handle);
+  if (!baseAddress) return false;
+  uint32_t ps2_handle = 0;
+  bool isPS2 = !kernel_dynlib_handle(pid, "libScePs2EmuMenuDialog.sprx", &ps2_handle);
+#else
   module_info_t *target_mod = get_module_handle(pid, cheat.module_name.c_str());
   etaHEN_log("Target module name: %s", cheat.module_name.c_str());
   if (!target_mod) {
@@ -551,9 +564,8 @@ bool CheatManager::ToggleCheat(int pid, const std::string &title_id,
     return false;
   }
 
-  bool enabled = false;
-  cheat_name = cheat.name;
   uint64_t baseAddress = target_mod->sections[0].vaddr;
+  free(target_mod);
   //
   // Check if is a PS2 game
   //
@@ -564,6 +576,9 @@ bool CheatManager::ToggleCheat(int pid, const std::string &title_id,
     isPS2 = true;
     free(ps2Lib);
   }
+#endif
+  bool enabled = false;
+  cheat_name = cheat.name;
 
   int pt_ret = 0;
   if (fw >= 0x840) {
@@ -895,7 +910,7 @@ CheatManager::CheatManagerFormats::ParseJSONCheat(const std::string &filename,
 
                 if (section.size()) {
                   int section_num = atoi(section.c_str());
-                  if (section_num < MODULE_INFO_MAX_SECTIONS)
+                  if (section_num >= 0 && section_num < MODULE_INFO_MAX_SECTIONS)
                     mem.section = section_num;
                 }
                 mod_info.mods.push_back(mem);

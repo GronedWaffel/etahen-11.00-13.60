@@ -92,12 +92,12 @@ struct CheatMetadata
 
 struct CheatMemory
 {
-    bool codeCaveReloc;
-    int section; // section where the offset should be added: Default 0
-    uint64_t Offset; // offset of the patch
+    bool codeCaveReloc = false;
+    int section = 0; // section where the offset should be added: Default 0
+    uint64_t Offset = 0; // offset of the patch
     ByteArray On; // Data that should be inserted when the cheat is enabled
     ByteArray Off; // Data that should be inserted when the cheat is disabled
-    bool absolute; // New To support section bigger than 0 when ASLR is off       // 09/10/2025 xZenithy
+    bool absolute = false; // JSON offsets are module-relative unless explicitly absolute.
 };
 
 struct CheatInfo

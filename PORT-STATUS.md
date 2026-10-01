@@ -1,5 +1,11 @@
 # Unofficial etaHEN 13.60 port — development status
 
+## Cheat repair candidate r3 (2026-10-01)
+
+The old `get_module_handle` syscall path returned no `eboot.bin` for the live native PS5 game. In the same process, SDK `kernel_dynlib_handle` returned handle 0 and base `0x400000`. The cheat utility now uses that SDK path in the 13.60 build, with the shared capability-aware ptrace attach/detach helpers. JSON patch addressing is initialized deterministically; explicit downloads also repair local indexes instead of trusting an old commit marker.
+
+The actual `CheatManager.cpp` parser/toggle code passed enable/disable checks for JSON and SHN/XML on a marked scratch allocation, with byte verification in both states. The standalone test does not replace the running service or patch gameplay code. The complete ELF builds; all ten native/build tests pass. Full boot/UI validation remains pending, as does reproduction using the issue reporter's exact files. See `port/cheat-engine-probe.cpp`, `port/cheat-module-probe.cpp` and their build scripts for the scoped diagnostics.
+
 ## Current r2: startup ordering and matched ShadowMount (2026-09-30)
 
 The user tested the updated website bundle on PS5 13.60 and confirmed Toolbox
