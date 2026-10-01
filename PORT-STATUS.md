@@ -1,10 +1,14 @@
 # Unofficial etaHEN 13.60 port — development status
 
-## Cheat repair candidate r3 (2026-10-01)
+## Cheat repair r3 (2026-10-01)
 
 The old `get_module_handle` syscall path returned no `eboot.bin` for the live native PS5 game. In the same process, SDK `kernel_dynlib_handle` returned handle 0 and base `0x400000`. The cheat utility now uses that SDK path in the 13.60 build, with the shared capability-aware ptrace attach/detach helpers. JSON patch addressing is initialized deterministically; explicit downloads also repair local indexes instead of trusting an old commit marker.
 
-The actual `CheatManager.cpp` parser/toggle code passed enable/disable checks for JSON and SHN/XML on a marked scratch allocation, with byte verification in both states. The standalone test does not replace the running service or patch gameplay code. The complete ELF builds; all ten native/build tests pass. Full boot/UI validation remains pending, as does reproduction using the issue reporter's exact files. See `port/cheat-engine-probe.cpp`, `port/cheat-module-probe.cpp` and their build scripts for the scoped diagnostics.
+The actual `CheatManager.cpp` parser/toggle code passed enable/disable checks for JSON and SHN/XML on a marked scratch allocation, with byte verification in both states. The complete ELF builds; all ten native/build tests pass. See `port/cheat-engine-probe.cpp`, `port/cheat-module-probe.cpp` and their build scripts for the scoped diagnostics.
+
+After a fresh jailbreak, the corrected full ELF started successfully. The user tested a temporary infinite-ammo JSON cheat in GTA V `PPSA04264` / `01.010.002` through the actual etaHEN Cheats UI: FTP upload, cache refresh, enable, gameplay and disable all passed. The utility log and independent byte reads confirmed `00 -> 03 -> 00`. The test cheat and index entry were removed and the live cache refreshed afterward. ShadowMount also started and mounted the game with this build. Reproduction using the issue reporter's exact files and MC4's encrypted input stage remain unverified.
+
+Tested r3 ELF: 30,410,624 bytes, SHA-256 `aa166a43347d10a31f7efa5ca26ec32f512c65e8910466bfc8033537337b87b2`.
 
 ## Current r2: startup ordering and matched ShadowMount (2026-09-30)
 

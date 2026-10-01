@@ -22,7 +22,8 @@ Put JSON, SHN or MC4 files in `/data/etaHEN/cheats/json`, `/data/etaHEN/cheats/s
 - A read-only probe reproduced the old module resolver failure on 13.60 and confirmed the SDK resolver's correct game base.
 - The real corrected cheat parser and toggle implementation enabled and disabled JSON and SHN/XML patches on a marked diagnostic scratch page in a running game. Both the enabled bytes and restored bytes were verified. No executable bytes, progress or save data were modified by this diagnostic.
 - Ten native/build regression tests passed, including a new poisoned-memory test for the address flag. The complete ELF builds with the corrected utility embedded.
-- Fresh-boot Toolbox/Cheats UI verification is pending. The encrypted MC4 input stage and the reporter's particular cheat files have not been retested; MC4 shares the tested XML/toggle path after decryption.
+- Fresh-boot service startup and the real Toolbox/Cheats path passed on PS5 13.60. A temporary JSON cheat for GTA V `PPSA04264` / `01.010.002` was copied over FTP, discovered with **Cache and reload Cheats list**, and enabled through etaHEN. The user confirmed infinite ammo in gameplay. The utility log and independent memory read confirmed activation; disabling it restored the original byte. The temporary file and its cache entry were then removed.
+- The encrypted MC4 input stage and the reporter's particular cheat files have not been retested; MC4 shares the tested XML/toggle path after decryption.
 
 Source and build scripts accompany the release. Please include title ID, exact game version, file format and the utility log when reporting a cheat failure. Community fixes and pull requests are welcome.
 
