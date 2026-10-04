@@ -2,10 +2,11 @@
 #pragma once
 #include <string.h>
 #include <ps5/kernel.h>
-// Preserve upstream routing below 13.xx and the working 13.60 legacy page.
-// The untested intermediate firmware routes remain community-test candidates.
+// OnionHEN settings-bundle profiles identify the legacy route from 11.00 onward.
+// https://github.com/aydencharles/onionHEN/blob/b23ffe674b2de9f62fe634944c9230ff149d593a/source/include/onion/debug_settings_route_policy.hpp
+// kernel_get_fw_version uses SDK encoding (e.g. 11.20 = 0x11200000).
 inline const char* port_toolbox_uri(){
- return (kernel_get_fw_version()&0xffff0000u)>=0x13000000u?
+ return (kernel_get_fw_version()&0xffff0000u)>=0x11000000u?
   "pssettings:play?mode=settings&function=debug_settings_old":
   "pssettings:play?mode=settings&function=debug_settings";
 }

@@ -1341,7 +1341,7 @@ int main(void) {
   }
 
 #ifdef ETAHEN_PORT_1360
-  if ((kernel_get_fw_version() & 0xffff0000u) == 0x13600000u) {
+  if (snipers_firmware_profile(kernel_get_fw_version())) {
   // The embedded helper owns only ETHN13600. It skips the registration scan
   // when its existing receipt, metadata and artwork already match.
   port_stage("bootstrap","before Toolbox card helper spawn");

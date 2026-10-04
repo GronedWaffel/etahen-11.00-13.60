@@ -2584,6 +2584,13 @@ bool handle_uri_boot_common(MonoString* uri, int opt) {
 bool uri_boot_hook(MonoString* uri,int opt,BootActionArgument arg){return port_boot_dispatch(uri,opt,arg,boot_orig);}
 bool uri_boot_hook_string(MonoString* uri,int opt,MonoString* arg){return port_boot_dispatch(uri,opt,arg,boot_orig_string);}
   bool uri_boot_hook_2(MonoString* uri, int opt) {
+#ifdef ETAHEN_PORT_1360
+    if(uri&&port_toolbox_root_requested(Mono_to_String(uri).c_str())){
+      cheats_shortcut_activated=cheats_shortcut_activated_not_open=false;
+      game_shortcut_activated=game_shortcut_activated_media=false;
+      return boot_orig_2(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt);
+    }
+#endif
   #if SHELL_DEBUG==1
     shellui_log("uri_boot_hook_2: %s, opt: %i", Mono_to_String(uri).c_str(), opt);
   #endif

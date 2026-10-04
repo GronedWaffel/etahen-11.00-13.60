@@ -61,7 +61,8 @@ int main(){
  assert(!port_toolbox_root_requested("pssettings:play?mode=settings&function=debug_settings"));
  assert(port_toolbox_root_requested(ETAHEN_TOOLBOX_ROOT_URI));
  assert(port_toolbox_root_requested("etaHEN?Toolbox"));
- test_firmware=0x12000000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings"));
+ test_firmware=0x10600000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings"));
+ test_firmware=0x12000000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings_old"));
  test_firmware=0x13000000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings_old"));
  const uint64_t base=UINT64_C(0xffffffff88000000);
  PortKstuffSnapshot state{base+0x1B6E50,base+0x1AE5C0,0xffff,0xffff,true};
