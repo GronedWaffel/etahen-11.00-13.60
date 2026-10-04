@@ -1,5 +1,5 @@
 <!-- snipers-experimental-release -->
-**Experimental multi-firmware downloads:** [Open the release with ELF / Windows assets](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-multifw-experimental.2). Targets 33 exact firmware versions from 7.00 through 13.60; 9.05 and 11.40 excluded. Community testing is still required. Stable 13.60 remains separate. [Experimental builder](https://sniperscheats.lol/builder/ex/) · [Experimental payloads](https://sniperscheats.lol/payloads/ex/).
+**Experimental multi-firmware downloads:** [Open the release with ELF / Windows assets](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-multifw-experimental.3). Targets 33 exact firmware versions from 7.00 through 13.60; 9.05 and 11.40 excluded. Community testing is still required. Stable 13.60 remains separate. [Experimental builder](https://sniperscheats.lol/builder/ex/) · [Experimental payloads](https://sniperscheats.lol/payloads/ex/).
 <!-- /snipers-experimental-release -->
 
 # etaHEN 13.60 — unofficial source port
