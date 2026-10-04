@@ -1,3 +1,7 @@
+> **Experimental multi-firmware community test.** This branch is separate from the stable 13.60 releases. Exact targets and pinned offset sources are in `firmware-profiles.json`. 9.05 and 11.40 are excluded because Relapse tables were not found. Local builds and guards have been checked; console startup on other firmware has not been validated. The historical 13.60 test results below do not certify this candidate.
+
+The experimental build uses `/data/etaHEN/config-multifw-experimental.ini` and separate startup receipts. Firmware-specific Mono Boot signatures are checked before installing that hook. The legacy ShellCore sandbox patch is skipped above 8.20, and the 13.60 Toolbox card helper runs only on 13.60.
+
 # etaHEN 13.60 — unofficial source port
 
 **PS5 13.60 port of etaHEN 2.5B, originally created by LightningMods and the etaHEN contributors.** Maintained here by GronedWaffel. This is an independent, experimental port, not an official etaHEN release. Please credit and support the [original etaHEN project](https://github.com/etaHEN/etaHEN).

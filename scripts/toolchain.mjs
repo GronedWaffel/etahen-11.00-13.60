@@ -8,7 +8,7 @@ export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'
 export const source=path.join(root,'Source Code');
 export const sdk=path.resolve(process.env.PS5_PAYLOAD_SDK||path.join(root,'../ps-neighbourhood/tools/ps5-sdk-0.43/ps5-payload-sdk'));
 export const zig=path.resolve(process.env.ZIG||path.join(root,'../ps-neighbourhood/tools/zig-x86_64-windows-0.14.1/zig.exe'));
-export const common=['-target','x86_64-linux-none','-U__linux__','-D__FreeBSD__=11','-D__PS5__','-D__SCE__','-fshort-wchar','-DPS5','-DPPR','-DETAHEN_PORT_1360=1','-Wno-date-time','-DPS5_FW_VERSION=0x1360','-isystem',path.join(sdk,'target/include'),'-march=znver2','-fPIC','-fno-stack-protector','-fno-plt','-femulated-tls','-O1','-fno-exceptions'];
+export const common=['-target','x86_64-linux-none','-U__linux__','-D__FreeBSD__=11','-D__PS5__','-D__SCE__','-fshort-wchar','-DPS5','-DPPR','-DETAHEN_PORT_1360=1','-Wno-date-time','-isystem',path.join(sdk,'target/include'),'-march=znver2','-fPIC','-fno-stack-protector','-fno-plt','-femulated-tls','-O1','-fno-exceptions'];
 export const cxx=['-nostdinc++','-I',path.join(sdk,'target/include/c++/v1'),'-std=c++20','-D_Bool=bool'];
 export function run(args,options={}) {
  mkdirSync(path.join(root,'build/zig-cache'),{recursive:true});

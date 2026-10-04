@@ -56,6 +56,7 @@ int (*PupExpirationGetStatus)(PupStatus& status, uint32_t& time) = nullptr;
 MonoString* (*getIpMacHost)(uint64_t inst, SceNetIfName name) = nullptr;
 bool (*boot_orig)(MonoString* uri, int opt, BootActionArgument action) = nullptr;
 void (*OnShareButton_orig)(MonoObject* data) = nullptr;
+bool (*boot_orig_string)(MonoString*, int, MonoString*) = nullptr;
 bool (*boot_orig_2)(MonoString* uri, int opt) = nullptr;
 
 void (*CaptureScreen_orig_old)(MonoObject * inst, int userId, long deviceId, int capType, MonoObject* capacityInfo) = nullptr;
@@ -2554,32 +2555,34 @@ bool handle_uri_boot_common(MonoString* uri, int opt) {
     return false; // No redirect needed
   }
   
-  bool uri_boot_hook(MonoString* uri, int opt, BootActionArgument titleIdForBootAction) {
+  template<typename Argument> bool port_boot_dispatch(MonoString* uri, int opt, Argument titleIdForBootAction, bool (*original)(MonoString*,int,Argument)) {
 #ifdef ETAHEN_PORT_1360
     if(uri&&port_toolbox_root_requested(Mono_to_String(uri).c_str())){
       cheats_shortcut_activated=cheats_shortcut_activated_not_open=false;
       game_shortcut_activated=game_shortcut_activated_media=false;
-      return boot_orig(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt,titleIdForBootAction);
+      return original(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt,titleIdForBootAction);
     }
 #endif
     if(handle_uri_boot_common(uri, opt)) {
         if(global_conf.lite_mode) {
             // In lite mode, we don't want to handle any shortcuts
             notify("Lite mode is enabled, shortcuts are disabled");
-            return boot_orig(uri, opt, titleIdForBootAction);
+            return original(uri, opt, titleIdForBootAction);
         }
 
         std::string uri_string = Mono_to_String(uri);
         if(uri_string == "etaHEN?Dump") {
-          return boot_orig(mono_string_new(Root_Domain, "pshomeui:navigateToHome?bootCondition=psButton"),  opt, titleIdForBootAction);
+          return original(mono_string_new(Root_Domain, "pshomeui:navigateToHome?bootCondition=psButton"),  opt, titleIdForBootAction);
         }
       // Redirect to debug settings
-      return boot_orig(mono_string_new(Root_Domain, ETAHEN_TOOLBOX_URI), opt, titleIdForBootAction);
+      return original(mono_string_new(Root_Domain, ETAHEN_TOOLBOX_URI), opt, titleIdForBootAction);
     }
     
-    return boot_orig(uri, opt, titleIdForBootAction);
+    return original(uri, opt, titleIdForBootAction);
   }
   
+bool uri_boot_hook(MonoString* uri,int opt,BootActionArgument arg){return port_boot_dispatch(uri,opt,arg,boot_orig);}
+bool uri_boot_hook_string(MonoString* uri,int opt,MonoString* arg){return port_boot_dispatch(uri,opt,arg,boot_orig_string);}
   bool uri_boot_hook_2(MonoString* uri, int opt) {
   #if SHELL_DEBUG==1
     shellui_log("uri_boot_hook_2: %s, opt: %i", Mono_to_String(uri).c_str(), opt);

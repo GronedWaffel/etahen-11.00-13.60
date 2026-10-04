@@ -1,3 +1,4 @@
+#include "port_firmware.h"
 #include "port_toolbox_route.hpp"
 #include "port_process_match.hpp"
 /* Copyright (C) 2025 etaHEN / LightningMods
@@ -1039,8 +1040,8 @@ bool isPastBetaDate(int year, int month, int day);
 int main(void) {
   port_stage("bootstrap","entered main");
 #ifdef ETAHEN_PORT_1360
-  if ((kernel_get_fw_version() & 0xffff0000u) != 0x13600000u) {
-    notify("This experimental etaHEN port requires PS5 firmware 13.60");
+  if (!snipers_firmware_profile(kernel_get_fw_version())) {
+    notify("This experimental etaHEN build has no profile for this firmware");
     return 1;
   }
   const pid_t existing_etahen = find_pid("etaHEN");
@@ -1070,8 +1071,8 @@ int main(void) {
   }
 #ifdef ETAHEN_PORT_1360
   // Clear before spawning the critical daemon, even if its PID is reused.
-  unlink("/system_tmp/etahen-1360-startup");
-  unlink("/system_tmp/etahen-1360-startup.tmp");
+  unlink("/system_tmp/etahen-experimental-startup");
+  unlink("/system_tmp/etahen-experimental-startup.tmp");
 #endif
 
 #if BETA == 1
@@ -1154,7 +1155,7 @@ int main(void) {
 
   klog_puts("============== Spawner (Bootstrapper) Started =================");
 #else
-  klog_puts("Unofficial etaHEN 2.5B experimental 13.60 port");
+  klog_puts("Unofficial etaHEN 2.5B multi-firmware community test");
 #endif
 
   mkdir("/data/etaHEN", 0777);
@@ -1171,7 +1172,7 @@ int main(void) {
     bool written=write(config_fd,defaults,sizeof(defaults)-1)==sizeof(defaults)-1;close(config_fd);
     if(!written){unlink(ETAHEN_CONFIG_PATH);notify("Unable to write the port configuration");return -1;}
   }else if(errno!=EEXIST){notify("Unable to open the port configuration");return -1;}
-  freopen("/data/etaHEN/bootstrap-1360-port.log","w",stdout);setvbuf(stdout,nullptr,_IONBF,0);
+  freopen("/data/etaHEN/bootstrap-experimental.log","w",stdout);setvbuf(stdout,nullptr,_IONBF,0);
 #endif
 
   klog_printf("Registering signal handler ...");
@@ -1323,6 +1324,7 @@ int main(void) {
   }
 
 #ifdef ETAHEN_PORT_1360
+  if ((kernel_get_fw_version() & 0xffff0000u) == 0x13600000u) {
   // The embedded helper owns only ETHN13600. It skips the registration scan
   // when its existing receipt, metadata and artwork already match.
   port_stage("bootstrap","before Toolbox card helper spawn");
@@ -1330,6 +1332,7 @@ int main(void) {
     port_stage("bootstrap","Toolbox card helper spawn failed");
     notify("etaHEN is running, but the Toolbox card installer could not start");
   }else port_stage("bootstrap","Toolbox card helper spawned; result is toolbox-card-install.json");
+  }
 #endif
 
   // return 0;

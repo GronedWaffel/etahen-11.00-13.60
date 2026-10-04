@@ -5,7 +5,7 @@
 
 // Boot-local acknowledgement, never a persistent log entry. The bootstrapper
 // clears it before spawning services; consumers also bind it to both live PIDs.
-static constexpr const char* PORT_STARTUP_PATH = "/system_tmp/etahen-1360-startup";
+static constexpr const char* PORT_STARTUP_PATH = "/system_tmp/etahen-experimental-startup";
 enum class PortStartupStatus : uint32_t { ToolboxReady=1, ToolboxDisabled=2, Failed=3 };
 struct PortStartupRecord {
     uint32_t magic=0x45544152, version=1;

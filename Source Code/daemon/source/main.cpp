@@ -306,7 +306,7 @@ static bool publish_startup(bool initialized, int shellui, bool toolboxEnabled) 
     PortStartupRecord record;
     record.critical=getpid();record.shellui=shellui;
     record.status=initialized ? (toolboxEnabled ? PortStartupStatus::ToolboxReady : PortStartupStatus::ToolboxDisabled) : PortStartupStatus::Failed;
-    const char* temporary="/system_tmp/etahen-1360-startup.tmp";
+    const char* temporary="/system_tmp/etahen-experimental-startup.tmp";
     FILE* file=fopen(temporary,"wb");if(!file)return false;
     bool ok=fwrite(&record,1,sizeof(record),file)==sizeof(record);
     if(fflush(file)!=0 || fsync(fileno(file))!=0)ok=false;

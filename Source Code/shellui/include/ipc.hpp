@@ -20,6 +20,7 @@ along with this program; see the file COPYING. If not, see
 #define IPC_HEADER_H
 
 #include "HookedFuncs.hpp"
+#include "port_trace.hpp"
 #include <array>
 #include <cstring>
 #include <errno.h>
@@ -68,10 +69,12 @@ static void shellui_log(const char *fmt, ...) {
     buffer[DAEMON_BUFF_MAX - 2] = '\n';
     buffer[DAEMON_BUFF_MAX - 1] = '\0';
   }
+  PortTrace("log write pending",buffer);
   if (!is_testkit)
 	  klog_printf("%s",buffer);
   else
     printf("%s", buffer);
+  PortTrace("log write returned",buffer);
 }
 
 static int MainDaemonSocket = -1;

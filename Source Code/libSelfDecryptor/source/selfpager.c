@@ -11,6 +11,7 @@
 #include <ps5/kernel.h>
 
 #include "selfpager.h"
+#include "../../include/port_firmware.h"
 
 #define SELF_ORBIS_MAGIC 0x1D3D154F
 #define SELF_PROSPERO_MAGIC 0xEEF51454
@@ -68,105 +69,9 @@ static int init() {
     }
 
     fwver = kernel_get_fw_version() >> 16;
-    switch (fwver) {
-    case 0x100:
-    case 0x101:
-    case 0x102:
-    case 0x105:
-    case 0x110:
-    case 0x111:
-    case 0x112:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xC27C40;
-        break;
-
-    case 0x113:
-    case 0x114:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xC27CA0;
-        break;
-
-    case 0x200:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xC4EF60;
-        break;
-
-    case 0x220:
-    case 0x225:
-    case 0x226:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xC4EFA0;
-        break;
-
-    case 0x230:
-    case 0x250:
-    case 0x270:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xC4F120;
-        break;
-
-    case 0x300:
-    case 0x310:
-    case 0x320:
-    case 0x321:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xCAF8C0;
-        break;
-
-    case 0x400:
-    case 0x402:
-    case 0x403:
-    case 0x450:
-    case 0x451:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xD20840;
-        break;
-
-    case 0x500:
-    case 0x502:
-    case 0x510:
-    case 0x550:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE0FEF0;
-        break;
-
-    case 0x600:
-    case 0x602:
-    case 0x650:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE30410;
-        break;
-
-    case 0x700:
-    case 0x701:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE310C0;
-        break;
-
-    case 0x720:
-    case 0x740:
-    case 0x760:
-    case 0x761:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE41180;
-        break;
-
-    case 0x800:
-    case 0x820:
-    case 0x840:
-    case 0x860:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE31250;
-        break;
-
-    case 0x900:
-    case 0x905:
-    case 0x920:
-    case 0x940:
-    case 0x960:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xDE0420;
-        break;
-
-    case 0x1000:
-    case 0x1001:
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xDE04F0;
-        break;
-
-    case 0x1360:
-        // ps5-payload-dev/ftpsrv self-prospero.c, commit 24f983f.
-        pagertab_addr = KERNEL_ADDRESS_DATA_BASE + 0xE03910;
-        break;
-    default:
-        return ENOSYS;
-    }
+    const SnipersFirmwareProfile *profile = snipers_firmware_profile((uint32_t)fwver << 16);
+    if (!profile) return ENOSYS;
+    pagertab_addr = KERNEL_ADDRESS_DATA_BASE + profile->pagerTable;
     vnodepagerops_addr = kernel_getlong(pagertab_addr + pagertab_vnodepagerops_index * 8);
     selfpagerops_addr = kernel_getlong(pagertab_addr + pagertab_selfpagerops_index * 8);
 

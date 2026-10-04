@@ -5,6 +5,8 @@
 #include "../../include/port_process_match.hpp"
 #include <assert.h>
 #include <initializer_list>
+static unsigned test_firmware=0x13600000u;
+extern "C" unsigned kernel_get_fw_version(void){return test_firmware;}
 // Exercise both eight-byte ABI slots, including an absent value with nonzero
 // payload bits. A pointer-shaped third argument loses the second slot.
 static PortNullableInt64 captured;
@@ -32,8 +34,11 @@ int main(){
  assert(!port_toolbox_root_requested("pssettings:play?mode=settings&function=debug_settings"));
  assert(port_toolbox_root_requested(ETAHEN_TOOLBOX_ROOT_URI));
  assert(port_toolbox_root_requested("etaHEN?Toolbox"));
+ test_firmware=0x12000000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings"));
+ test_firmware=0x13000000u;assert(!strcmp(ETAHEN_TOOLBOX_URI,"pssettings:play?mode=settings&function=debug_settings_old"));
  const uint64_t base=UINT64_C(0xffffffff88000000);
  PortKstuffSnapshot state{base+0x1B6E50,base+0x1AE5C0,0xffff,0xffff,true};
+ state.expectedNative=state.native;state.expectedCompat=state.compat;
  assert(state.classify(base)==PortKstuffState::Unmodified);
  assert(state.injectionReady(base)); // no_kstuff mode remains usable
  state.readable=false;assert(state.classify(base)==PortKstuffState::Unknown);assert(!state.injectionReady(base));state.readable=true;

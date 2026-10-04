@@ -1038,7 +1038,7 @@ bool cmd_enable_toolbox(){
     }
 
 #ifdef ETAHEN_PORT_1360
-    int active_pid=-1;FILE* port_pid=fopen("/system_tmp/etahen-1360-toolbox.pid","r");
+    int active_pid=-1;FILE* port_pid=fopen("/system_tmp/etahen-experimental-toolbox.pid","r");
     if(port_pid){fscanf(port_pid,"%d",&active_pid);fclose(port_pid);}
     if(active_pid==pid){etaHEN_log("Toolbox already active in this ShellUI process");return true;}
     // Reopening an already injected Toolbox must not briefly toggle kstuff.

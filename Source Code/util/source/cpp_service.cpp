@@ -432,10 +432,10 @@ uint8_t *PatternScan(const uint64_t module_base, const uint64_t module_size, con
 // Shell patch functions
 bool patchShellCore() {
 #ifdef ETAHEN_PORT_1360
-    // No 13.60 pattern exists below. Do not enter the old firmware's module
-    // introspection and full-text copy just to reject it afterwards.
-    if((kernel_get_fw_version()&0xffff0000u)==0x13600000u){
-        etaHEN_log("The legacy /data sandbox patch has no verified 13.60 signature; no ShellCore access attempted");
+    // Verified legacy signatures stop at 8.20. Reject later versions before
+    // module introspection or a full-text copy.
+    if((kernel_get_fw_version()&0xffff0000u)>0x08200000u){
+        etaHEN_log("The legacy /data sandbox patch has no verified signature for this firmware; no ShellCore access attempted");
         return false;
     }
 #endif

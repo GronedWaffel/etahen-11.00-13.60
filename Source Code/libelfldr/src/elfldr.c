@@ -36,6 +36,7 @@ along with this program; see the file COPYING. If not, see
 #include <ps5/kernel.h>
 
 #include "elfldr.h"
+#include "port_timing.h"
 #include "log.h"
 #include "pt.h"
 
@@ -729,7 +730,7 @@ elfldr_read(int fd, uint8_t** elf, size_t* elf_size) {
  **/
 pid_t
 elfldr_spawn(const char* cwd, int stdio, uint8_t* elf, const char* name) {
-
+  const uint64_t spawn_started=port_timing_now();
   uint8_t int3instr = 0xcc;
   struct kevent evt;
   intptr_t brkpoint;
@@ -774,6 +775,9 @@ elfldr_spawn(const char* cwd, int stdio, uint8_t* elf, const char* name) {
 
   free(stack);
   close(kq);
+
+  port_timing_end("spawn-process",pid,spawn_started,0);
+  const uint64_t prepare_started=port_timing_now();
 
   // The proc is now in the STOP state, with the instruction pointer pointing
   // at the libkernel entry. Let the kernel assign process parameters accessed
@@ -830,12 +834,16 @@ elfldr_spawn(const char* cwd, int stdio, uint8_t* elf, const char* name) {
   }
 
   // Execute the ELF
+  port_timing_end("spawn-prepare",pid,prepare_started,0);
+  const uint64_t image_started=port_timing_now();
   elfldr_set_procname(pid, name);
   if(elfldr_exec(pid, stdio, elf)) {
     kill(pid, SIGKILL);
     return -1;
   }
 
+  port_timing_end("spawn-image",pid,image_started,0);
+  port_timing_end(name?name:"spawn-total",pid,spawn_started,0);
   return pid;
 }
 
