@@ -176,7 +176,7 @@ void etaHEN_log(const char *fmt, ...) {
     printf("[etaHEN]: %s", msg); // msg already includes a newline
     klog_printf("%s", msg); // msg already includes a newline
 
-    int fd = open("/data/etaHEN/etaHEN.log", O_WRONLY | O_CREAT | O_APPEND, 0777);
+    int fd = open("/data/etaHEN/experimental-daemon.log", O_WRONLY | O_CREAT | O_APPEND, 0777);
     if (fd < 0) {
         return;
     }
@@ -237,7 +237,7 @@ void sig_handler(int signo) {
         return;
     }
     notify(true,
-          "etaHEN has crashed ...\n\nPlease send /data/etaHEN/etaHEN_crash.log "
+          "etaHEN has crashed ...\n\nPlease send /data/etaHEN/experimental-daemon-crash.log "
           "to the PKG-Zone discord: https://discord.gg/BduZHudWGj");
     etaHEN_log("main etaHEN has crashed ...");
     //printBacktraceForCrash();
@@ -345,8 +345,8 @@ int main() {
     for (int i = 0; i < 12; i++)
         sigaction(i, &new_SIG_action, NULL);
 
-    rename("/data/etaHEN/etaHEN.log","/data/etaHEN/etaHEN.previous.log");
-    rename("/data/etaHEN/etaHEN_crash.log","/data/etaHEN/etaHEN_crash.previous.log");
+    rename("/data/etaHEN/experimental-daemon.log","/data/etaHEN/experimental-daemon.previous.log");
+    rename("/data/etaHEN/experimental-daemon-crash.log","/data/etaHEN/experimental-daemon-crash.previous.log");
 
     payload_args_t *args = payload_get_args();
     kernel_base = args->kdata_base_addr;

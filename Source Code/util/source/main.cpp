@@ -205,8 +205,8 @@ int main(void) {
     global_conf.klog = true;
 	global_conf.legacy_cmd_server_exit = false;
 
-    rename("/data/etaHEN/etaHEN_util_daemon.log","/data/etaHEN/etaHEN_util_daemon.previous.log");
-    rename("/data/etaHEN/etaHEN_util_crash.log","/data/etaHEN/etaHEN_util_crash.previous.log");
+    rename("/data/etaHEN/experimental-utility.log","/data/etaHEN/experimental-utility.previous.log");
+    rename("/data/etaHEN/experimental-utility-crash.log","/data/etaHEN/experimental-utility-crash.previous.log");
 
     etaHEN_log("=========== starting etaHEN Utilities... ===========");
    // if(!sceKernelIsTestKit())

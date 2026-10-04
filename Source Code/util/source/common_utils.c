@@ -158,7 +158,7 @@ void etaHEN_log(const char * fmt, ...) {
   printf("[etaHEN utils]: %s", msg); // msg already includes a newline
   klog_printf("%s", msg); // msg already includes a newline
 
-  int fd = open("/data/etaHEN/etaHEN_util_daemon.log", O_WRONLY | O_CREAT | O_APPEND, 0777);
+  int fd = open("/data/etaHEN/experimental-utility.log", O_WRONLY | O_CREAT | O_APPEND, 0777);
   if (fd < 0) {
     return;
   }
