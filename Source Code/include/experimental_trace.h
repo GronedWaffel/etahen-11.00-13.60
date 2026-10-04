@@ -14,7 +14,7 @@
 #ifndef EXPERIMENTAL_TRACE_PARENT
 #define EXPERIMENTAL_TRACE_PARENT "/data/etaHEN"
 #endif
-#define EXPERIMENTAL_DIAGNOSTIC_BUILD "ex-diag-20261004.1"
+#define EXPERIMENTAL_DIAGNOSTIC_BUILD "ex-diag-20261004.2"
 #define EXPERIMENTAL_TRACE_LIMIT (1024*1024)
 // Safe stage boundaries only: never while a target is ptrace-stopped.
 // Logging failure or lock contention must not stop startup.

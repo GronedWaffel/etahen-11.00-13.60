@@ -1,4 +1,5 @@
 #include "port_mono_abi.hpp"
+#include "port_boot_abi.hpp"
 #include "../../include/port_kstuff_state.hpp"
 #define ETAHEN_PORT_1360 1
 #include "../../include/port_toolbox_route.hpp"
@@ -17,6 +18,24 @@ __attribute__((sysv_abi,noinline)) static bool forward(void* uri,int option,Port
  return original(uri,option,action);
 }
 int main(){
+ // Captured PS5 13.60 metadata: Boot(String, BootHelper.Option, Nullable<Int64>).
+ // Option is an enum with a four-byte Int32 backing field, not named Int32.
+ const char* option="Sce.Vsh.ShellUI.AppSystem.BootHelper.Option";
+ const bool enum32=port_boot_int32_enum(true,"System.Int32",4,4,false);
+ assert(enum32);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8,enum32)==PortBootAbi::NullableInt64);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8)==PortBootAbi::Unsupported);
+ assert(!port_boot_int32_enum(false,"System.Int32",4,4,false));
+ assert(!port_boot_int32_enum(true,"System.Int64",8,8,false));
+ assert(!port_boot_int32_enum(true,"System.UInt32",4,4,false));
+ assert(!port_boot_int32_enum(true,"System.Int32",4,4,true));
+ assert(!port_boot_int32_enum(true,"System.Int32",8,4,false));
+ assert(!port_boot_int32_enum(true,"System.Int32",4,8,false));
+ assert(!port_boot_int32_enum(true,nullptr,4,4,false));
+ assert(port_boot_abi(2,false,"System.Boolean","System.String","System.Int32",nullptr)==PortBootAbi::TwoArguments);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.String",0,0,enum32)==PortBootAbi::StringArgument);
+ assert(port_boot_abi(3,true,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8,enum32)==PortBootAbi::Unsupported);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",8,8,enum32)==PortBootAbi::Unsupported);
  const char url_name[]="etaHEN-13.60-242b53c63ddf.elf";
  assert(!port_other_process_matches(98,98,url_name,sizeof(url_name),"etaHEN"));
  assert(port_other_process_matches(99,98,url_name,sizeof(url_name),"etaHEN"));
