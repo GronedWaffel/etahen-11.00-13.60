@@ -1245,22 +1245,24 @@ int main(int argc, char const *argv[]) {
     void* return_type=signature_return(signature);char* return_name=return_type?type_name(return_type):nullptr;
     unsigned alignment=0;int bytes=0;
     if(count==3&&names[2]&&strstr(names[2],"System.Nullable")){MonoClass* klass=class_from_type(types[2]);if(klass)bytes=value_size(klass,&alignment);}
-    bool option_enum=false;unsigned option_alignment=0;int option_bytes=0;char* option_base_name=nullptr;
-    if(types[1]&&class_is_enum&&enum_basetype&&type_is_byref&&!type_is_byref(types[1])){
+    bool option_enum=false,option_is_enum=false;unsigned option_alignment=0;int option_bytes=0;char* option_base_name=nullptr;
+    const bool option_byref=!types[1]||!type_is_byref||type_is_byref(types[1]);
+    if(types[1]&&class_is_enum&&enum_basetype&&!option_byref){
       MonoClass* option_class=class_from_type(types[1]);
       if(option_class&&class_is_enum(option_class)){
+        option_is_enum=true;
         void* base_type=enum_basetype(option_class);
         if(base_type)option_base_name=type_name(base_type);
         option_bytes=value_size(option_class,&option_alignment);
-        option_enum=port_boot_int32_enum(true,option_base_name,option_bytes,option_alignment,false);
+        option_enum=port_boot_integer32_enum(true,option_base_name,option_bytes,option_alignment,false);
       }
     }
     PortStatus("inspecting Mono Boot ABI");
     const bool instance=signature_instance(signature)!=0;
     const auto abi=port_boot_abi(count,instance,return_name,names[0],names[1],names[2],bytes,alignment,option_enum);
     char abi_detail[192];
-    snprintf(abi_detail,sizeof(abi_detail),"Boot ABI %s argc=%u instance=%d ret=%.20s first=%.20s enum32=%d opt=%d/%u third=%.40s size=%d/%u",
-      abi==PortBootAbi::Unsupported?"rejected":"accepted",count,instance,return_name?return_name:"null",names[0]?names[0]:"null",option_enum,option_bytes,option_alignment,names[2]?names[2]:"none",bytes,alignment);
+    snprintf(abi_detail,sizeof(abi_detail),"Boot ABI %s n=%u this=%d enum=%d ref=%d base=%.20s opt=%d/%u ret=%.20s arg0=%.20s arg2=%.40s sz=%d/%u",
+      abi==PortBootAbi::Unsupported?"rejected":"accepted",count,instance,option_is_enum,option_byref,option_base_name?option_base_name:"null",option_bytes,option_alignment,return_name?return_name:"null",names[0]?names[0]:"null",names[2]?names[2]:"none",bytes,alignment);
     if(option_base_name)free_mono(option_base_name);
     for(auto name:names)if(name)free_mono(name);if(return_name)free_mono(return_name);
     if(abi==PortBootAbi::Unsupported){notify("Unrecognized Boot signature; Toolbox stopped before hooking it");PortStatus(abi_detail);return -1;}

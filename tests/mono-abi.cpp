@@ -11,27 +11,35 @@ extern "C" unsigned kernel_get_fw_version(void){return test_firmware;}
 // Exercise both eight-byte ABI slots, including an absent value with nonzero
 // payload bits. A pointer-shaped third argument loses the second slot.
 static PortNullableInt64 captured;
+static uint32_t expected_option=7;
 __attribute__((sysv_abi,noinline)) static bool original(void* uri,int option,PortNullableInt64 action){
- assert(uri==(void*)0x1234&&option==7);captured=action;return action.hasValue!=0;
+ assert(uri==(void*)0x1234&&static_cast<uint32_t>(option)==expected_option);captured=action;return action.hasValue!=0;
 }
 __attribute__((sysv_abi,noinline)) static bool forward(void* uri,int option,PortNullableInt64 action){
  return original(uri,option,action);
 }
 int main(){
  // Captured PS5 13.60 metadata: Boot(String, BootHelper.Option, Nullable<Int64>).
- // Option is an enum with a four-byte Int32 backing field, not named Int32.
+ // Option has a UInt32 backing field (ECMA field signature 06 09), read from the console metadata.
  const char* option="Sce.Vsh.ShellUI.AppSystem.BootHelper.Option";
- const bool enum32=port_boot_int32_enum(true,"System.Int32",4,4,false);
+ const bool enum32=port_boot_integer32_enum(true,"System.Int32",4,4,false);
  assert(enum32);
  assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8,enum32)==PortBootAbi::NullableInt64);
  assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8)==PortBootAbi::Unsupported);
- assert(!port_boot_int32_enum(false,"System.Int32",4,4,false));
- assert(!port_boot_int32_enum(true,"System.Int64",8,8,false));
- assert(!port_boot_int32_enum(true,"System.UInt32",4,4,false));
- assert(!port_boot_int32_enum(true,"System.Int32",4,4,true));
- assert(!port_boot_int32_enum(true,"System.Int32",8,4,false));
- assert(!port_boot_int32_enum(true,"System.Int32",4,8,false));
- assert(!port_boot_int32_enum(true,nullptr,4,4,false));
+ assert(!port_boot_integer32_enum(false,"System.Int32",4,4,false));
+ assert(!port_boot_integer32_enum(true,"System.Int64",8,8,false));
+ const bool enumU32=port_boot_integer32_enum(true,"System.UInt32",4,4,false);
+ assert(enumU32);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8,enumU32)==PortBootAbi::NullableInt64);
+ assert(port_boot_abi(3,false,"System.Boolean","System.String","System.UInt32","System.Nullable<System.Int64>",16,8)==PortBootAbi::NullableInt64);
+ assert(!port_boot_integer32_enum(true,"System.UInt32",8,4,false));
+ assert(!port_boot_integer32_enum(true,"System.UInt32",4,8,false));
+ assert(!port_boot_integer32_enum(true,"System.UInt32",4,4,true));
+ assert(!port_boot_integer32_enum(true,"System.Single",4,4,false));
+ assert(!port_boot_integer32_enum(true,"System.Int32",4,4,true));
+ assert(!port_boot_integer32_enum(true,"System.Int32",8,4,false));
+ assert(!port_boot_integer32_enum(true,"System.Int32",4,8,false));
+ assert(!port_boot_integer32_enum(true,nullptr,4,4,false));
  assert(port_boot_abi(2,false,"System.Boolean","System.String","System.Int32",nullptr)==PortBootAbi::TwoArguments);
  assert(port_boot_abi(3,false,"System.Boolean","System.String",option,"System.String",0,0,enum32)==PortBootAbi::StringArgument);
  assert(port_boot_abi(3,true,"System.Boolean","System.String",option,"System.Nullable<System.Int64>",16,8,enum32)==PortBootAbi::Unsupported);
@@ -71,9 +79,12 @@ int main(){
  assert(!state.injectionReady(base));
  state.hmac=0xffff;assert(state.classify(base)==PortKstuffState::Unknown);
  state.native=0;assert(state.classify(base)==PortKstuffState::Unknown);
+ for(uint32_t bits:{0u,7u,0x80000000u,0xffffffffu}){
+ expected_option=bits;int option;memcpy(&option,&bits,sizeof(option));
  for(uint8_t present: {uint8_t(0),uint8_t(1)}){
   PortNullableInt64 action={present,{0},INT64_C(0x123456789abcdef)};
-  assert(forward((void*)0x1234,7,action)==bool(present));
+  assert(forward((void*)0x1234,option,action)==bool(present));
   assert(captured.hasValue==present&&captured.value==action.value);
  }
+}
 }
