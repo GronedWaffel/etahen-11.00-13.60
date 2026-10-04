@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
-#ifdef ETAHEN_TOOLBOX_DIAGNOSTIC
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
 #ifdef __cplusplus
 extern "C" {
 #endif

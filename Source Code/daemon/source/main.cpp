@@ -319,6 +319,7 @@ void LoadSettings();
 bool is_800 = false;
 int main() {
     port_stage("critical","entered main");
+    port_result("critical","firmware raw",kernel_get_fw_version(),0);
 #ifdef ETAHEN_PORT_1360
     unlink(PORT_STARTUP_PATH);
 #endif
@@ -344,8 +345,8 @@ int main() {
     for (int i = 0; i < 12; i++)
         sigaction(i, &new_SIG_action, NULL);
 
-    unlink("/data/etaHEN/etaHEN.log");
-    unlink("/data/etaHEN/etaHEN_crash.log");
+    rename("/data/etaHEN/etaHEN.log","/data/etaHEN/etaHEN.previous.log");
+    rename("/data/etaHEN/etaHEN_crash.log","/data/etaHEN/etaHEN_crash.previous.log");
 
     payload_args_t *args = payload_get_args();
     kernel_base = args->kdata_base_addr;
@@ -361,6 +362,8 @@ int main() {
     port_stage("critical","before settings load");
     LoadSettings();
     port_stage("critical","settings loaded");
+    port_result("critical","setting toolbox_auto_start",global_conf.toolbox_auto_start,0);
+    port_result("critical","setting start_opt",global_conf.start_opt,0);
 
 #if 0
     // Check if running on a test kit
@@ -380,6 +383,7 @@ int main() {
     etaHEN_log("is toolbox only: %s | ver: %x", toolbox_only ? "Yes" : "No", sys_ver.version);
     // Initialize toolbox if needed
     const int startup_shellui=get_shellui_pid();
+    port_result("critical","startup ShellUI pid",startup_shellui,0);
     bool startup_initialized=true;
     if (global_conf.toolbox_auto_start) {
         startup_initialized=cmd_enable_toolbox();
@@ -496,7 +500,9 @@ int main() {
 #ifdef ETAHEN_PORT_1360
     // Finish injection and startup actions before optional payloads touch
     // ShellCore or start another injector. A restarted ShellUI is not success.
-    if(get_shellui_pid()!=startup_shellui)startup_initialized=false;
+    int current_shellui=get_shellui_pid();
+    port_result("critical","final ShellUI pid",current_shellui,0);
+    if(current_shellui!=startup_shellui){startup_initialized=false;port_stage("critical","ShellUI restarted during startup");}
     if(!publish_startup(startup_initialized,startup_shellui,global_conf.toolbox_auto_start)) {
         etaHEN_log("Could not publish startup acknowledgement; optional payloads remain blocked");
         port_stage("critical","startup acknowledgement could not be published");

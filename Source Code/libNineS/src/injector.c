@@ -1,6 +1,8 @@
+#include <errno.h>
 #include "../include/injector.h"
 #include "ps5/klog.h"
 #include <stddef.h>
+#include "port_diagnostic.h"
 #ifdef ETAHEN_PORT_1360
 #define klog_puts puts
 #define klog_printf printf
@@ -76,6 +78,8 @@ void init_remote_function_pointers(pid_t pid)
     remote_pthread_create = pt_resolve(pid, nid);
     nid_encode("nid_pthread_join", nid);
     remote_pthread_join = (void*) pt_resolve(pid, nid);
+    port_diag("resolve-malloc",remote_malloc,0,0);
+    port_diag("resolve-pthread-create",remote_pthread_create,0,0);
 
     //
     // Shellcode function pointers
@@ -115,6 +119,7 @@ int inject_elf(struct proc* proc, void* elf)
 
     klog_printf("[+] Loading ELF on %d...[+]\n", proc->pid);
     intptr_t entry = elfldr_load(proc->pid, (uint8_t*) elf);
+    port_diag("ELF-load-entry",entry,entry<=0?-1:0,entry<=0?errno:0);
 
     if (entry <= 0)
     {
@@ -123,6 +128,7 @@ int inject_elf(struct proc* proc, void* elf)
     }
 
     intptr_t args = elfldr_payload_args(proc->pid);
+    port_diag("ELF-payload-args",args,args<=0?-1:0,args<=0?errno:0);
     if (args <= 0) goto detach;
     if(pt_copyout(proc->pid,args+0x28,&injector_result_address,sizeof(injector_result_address)) ||
        !injector_result_address || pt_setint(proc->pid,injector_result_address,-1234567)) goto detach;
@@ -162,6 +168,7 @@ int inject_elf(struct proc* proc, void* elf)
     // Call until hit a breakpoint
     //
     status = pt_call2(proc->pid, bootstrap, sce_ptr_mem, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL) == 0;
+    port_diag("ELF-thread-stager",bootstrap,status,status?0:errno);
 
 detach:
     if (pt_detach(proc->pid, 0)) status = false;

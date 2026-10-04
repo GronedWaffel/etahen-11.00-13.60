@@ -1038,12 +1038,19 @@ bool sceKernelIsTestKit() {
 bool isPastBetaDate(int year, int month, int day);
 
 int main(void) {
-  port_stage("bootstrap","entered main");
+  port_stage("bootstrap","RUN BEGIN; entered main");
+  port_result("bootstrap","firmware raw",kernel_get_fw_version(),0);
 #ifdef ETAHEN_PORT_1360
   if (!snipers_firmware_profile(kernel_get_fw_version())) {
+    port_result("bootstrap","firmware profile unsupported",-1,0);
     notify("This experimental etaHEN build has no profile for this firmware");
     return 1;
   }
+  const auto* diagnostic_profile=snipers_firmware_profile(kernel_get_fw_version());
+  char profile_detail[512];
+  snprintf(profile_detail,sizeof profile_detail,"profile=%s allproc=%lx security=%lx rootvnode=%lx textDelta=%lx sysentvec=%lx sysentvecPs4=%lx crypt=%lx sysents=%lx sysentsPs4=%lx pager=%lx kstuff=v1.11",
+    diagnostic_profile->name,diagnostic_profile->allproc,diagnostic_profile->security,diagnostic_profile->rootvnode,diagnostic_profile->textDelta,diagnostic_profile->sysentvec,diagnostic_profile->sysentvecPs4,diagnostic_profile->cryptSingletonArray,diagnostic_profile->sysents,diagnostic_profile->sysentsPs4,diagnostic_profile->pagerTable);
+  port_stage("bootstrap",profile_detail);
   const pid_t existing_etahen = find_pid("etaHEN");
   if (existing_etahen > 0) {
     char stage[96];
@@ -1065,7 +1072,10 @@ int main(void) {
 
   klog_puts("Jailbreaking the boostrapper ...");
   // launch socksrv.elf in a new processes
-  if (elfldr_raise_privileges(getpid())) {
+  port_stage("bootstrap","before privilege setup");
+  int privilege_result=elfldr_raise_privileges(getpid());
+  port_result("bootstrap","privilege setup",privilege_result,privilege_result?errno:0);
+  if (privilege_result) {
     notify("Unable to raise privileges");
     return -1;
   }
@@ -1172,6 +1182,7 @@ int main(void) {
     bool written=write(config_fd,defaults,sizeof(defaults)-1)==sizeof(defaults)-1;close(config_fd);
     if(!written){unlink(ETAHEN_CONFIG_PATH);notify("Unable to write the port configuration");return -1;}
   }else if(errno!=EEXIST){notify("Unable to open the port configuration");return -1;}
+  rename("/data/etaHEN/bootstrap-experimental.log","/data/etaHEN/bootstrap-experimental.previous.log");
   freopen("/data/etaHEN/bootstrap-experimental.log","w",stdout);setvbuf(stdout,nullptr,_IONBF,0);
 #endif
 
@@ -1185,11 +1196,13 @@ int main(void) {
 #endif
   port_stage("bootstrap","before system remounts");
   if (!remount("/dev/ssd0.system_ex", "/system_ex")) {
+    port_result("bootstrap","system_ex remount failed",-1,errno);
     perror("failed to mount /system_ex\nif you see this reboot");
     notify("failed to mount /system_ex\nif you see this reboot");
     return -1;
   }
   if (!remount("/dev/ssd0.system", "/system")) {
+    port_result("bootstrap","system remount failed",-1,errno);
     perror("failed to mount /system_\nif you see this reboot");
     notify("failed to mount /system\nif you see this reboot");
     return -1;
@@ -1247,7 +1260,9 @@ int main(void) {
       bool cleanup_kstuff = false;
       uint8_t* kstuff_address = get_kstuff_address(cleanup_kstuff);
 
-      if (elfldr_spawn("/", STDOUT_FILENO, kstuff_address, "kstuff") >= 0) {
+      int kstuff_pid=elfldr_spawn("/", STDOUT_FILENO, kstuff_address, "kstuff");
+      port_result("bootstrap","kstuff spawn pid",kstuff_pid,kstuff_pid<0?errno:0);
+      if (kstuff_pid >= 0) {
           int wait = 0;
           bool kstuff_not_loaded = false;
           sleep(1);
@@ -1259,6 +1274,8 @@ int main(void) {
               sleep(1);
           }
 
+          port_result("bootstrap","kstuff readiness",kstuff_not_loaded?-1:0,0);
+          port_result("bootstrap","kstuff wait seconds",wait,0);
           if (!kstuff_not_loaded)
               klog_puts("kstuff loaded");
 
@@ -1337,7 +1354,9 @@ int main(void) {
 
   // return 0;
 
+  port_stage("bootstrap","before plugin discovery");
   char **plugin_paths = find_plugin_files();
+  port_result("bootstrap","plugin count",plugin_count,0);
   if (plugin_paths && plugin_count > 0) {
     int loaded_plugins = 0;
     // First, load all plugins except elfldr.plugin
@@ -1368,6 +1387,7 @@ int main(void) {
   // sceSystemServiceLoadExec("exit", NULL);
   klog_puts("============== Spawner (Bootstrapper) Finished =================");
 #ifdef ETAHEN_PORT_1360
+  port_stage("bootstrap","RUN bootstrap complete; services dispatched, readiness is separate");
   puts("Both etaHEN services spawned; check Toolbox initialization separately");
 #endif
 

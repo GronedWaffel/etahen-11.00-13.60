@@ -14,7 +14,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #endif
-#ifdef ETAHEN_TOOLBOX_DIAGNOSTIC
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
 #define publication_stage(message) port_diag(message,0,0,0)
 #else
 #define publication_stage(message) port_stage("publisher",message)

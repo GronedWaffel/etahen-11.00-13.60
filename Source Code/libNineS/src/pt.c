@@ -88,7 +88,7 @@ pt_attach(pid_t pid) {
     return -1;
   }
   puts("ptrace attach accepted; waiting for stop");
-#ifdef ETAHEN_TOOLBOX_DIAGNOSTIC
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
   port_diag("attach-accepted",pid,0,0);
   int wait_status=0;
   int waited=waitpid(pid,&wait_status,0);
@@ -124,7 +124,7 @@ pt_step(int pid) {
     return -1;
   }
 
-#ifdef ETAHEN_TOOLBOX_DIAGNOSTIC
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
   int wait_status=0;
   int waited=waitpid(pid,&wait_status,0);
   port_diag("step-wait",pid,waited,waited<0?errno:0);

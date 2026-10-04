@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
-#ifdef ETAHEN_SHELLUI_TRACE
+#if defined(ETAHEN_SHELLUI_TRACE) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
 #include <stdio.h>
 extern void PortStatus(const char*);
 // Shared-memory breadcrumbs only. Never add file or socket I/O to ShellUI.

@@ -1242,9 +1242,11 @@ int main(int argc, char const *argv[]) {
     void* return_type=signature_return(signature);char* return_name=return_type?type_name(return_type):nullptr;
     unsigned alignment=0;int bytes=0;
     if(count==3&&names[2]&&strstr(names[2],"System.Nullable")){MonoClass* klass=class_from_type(types[2]);if(klass)bytes=value_size(klass,&alignment);}
+    PortStatus("inspecting Mono Boot ABI");
     const auto abi=port_boot_abi(count,signature_instance(signature)!=0,return_name,names[0],names[1],names[2],bytes,alignment);
     for(auto name:names)if(name)free_mono(name);if(return_name)free_mono(return_name);
-    if(abi==PortBootAbi::Unsupported){notify("Unrecognized Boot signature; Toolbox stopped before hooking it");return -1;}
+    if(abi==PortBootAbi::Unsupported){PortStatus("unsupported Mono Boot ABI; hooks rejected");notify("Unrecognized Boot signature; Toolbox stopped before hooking it");return -1;}
+    PortStatus(abi==PortBootAbi::TwoArguments?"Mono Boot ABI: two arguments":abi==PortBootAbi::StringArgument?"Mono Boot ABI: string argument":"Mono Boot ABI: nullable value argument");
     const auto boot_address=Get_Address_of_Method(AppSystem_img,appsystem_namespace.c_str(),boot_helper.c_str(),boot_method.c_str(),count);
     if(!boot_address)return -1;
     void* installed=nullptr;

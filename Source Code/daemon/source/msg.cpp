@@ -1033,6 +1033,7 @@ bool cmd_enable_toolbox(){
 #ifndef ETAHEN_PORT_1360
       pause_resume_kstuff();
 #endif
+      port_result("critical","ShellUI lookup failed",pid,errno);
       notify(true, "Failed to get shellui pid");
       return false;
     }
@@ -1043,6 +1044,7 @@ bool cmd_enable_toolbox(){
     if(active_pid==pid){etaHEN_log("Toolbox already active in this ShellUI process");return true;}
     // Reopening an already injected Toolbox must not briefly toggle kstuff.
     if(!port_kstuff_injection_ready()){
+      port_result("critical","kstuff state rejected before injection",-1,0);
       notify(true,"Unexpected kstuff table state. Restart before Toolbox injection.");
       return false;
     }
@@ -1055,12 +1057,14 @@ bool cmd_enable_toolbox(){
       pause_resume_kstuff();
       ForceKillProc(pid);
 #endif
+      port_result("critical","Toolbox injection failed",-1,errno);
       notify(true, "Failed to inject toolbox");
       return false;
     }
 
     port_stage("critical","Toolbox thread started; waiting for readiness");
     while (!if_exists("/system_tmp/toolbox_online")) {
+      port_result("critical","Toolbox readiness wait seconds",wait,0);
       etaHEN_log("waiting for toolbox to start");
       sleep(1);
       if(++wait >= 15){
@@ -1068,6 +1072,7 @@ bool cmd_enable_toolbox(){
         ForceKillProc(pid);
         pause_resume_kstuff();
 #endif
+        port_result("critical","Toolbox readiness timed out",wait,0);
         notify(true, "Failed to load the etaHEN toolbox");
         return false;
       }
