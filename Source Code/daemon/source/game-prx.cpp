@@ -2,6 +2,7 @@
 // Native PRX modules load inside their matching game, once per process.
 #include "kernel.hpp"
 #include "port_kstuff.hpp"
+#include "port_game_arena.h"
 #include "port_prx.h"
 #include "port_game_plugin.hpp"
 #include <fcntl.h>
@@ -24,7 +25,7 @@ extern int get_game_pid();
 extern void notify(bool,const char*,...);
 namespace {
 struct Hook {uint64_t target=0,stub=0;int original=-1;bool published=false;unsigned char before[64]{},patch[14]{};FpsLimiterStub code{};};
-struct Session {int pid,app;uint64_t control=0,started=0;bool failed=false;std::string paths[PORT_PRX_MAX];unsigned reported[PORT_PRX_MAX]{};bool waiting_notified=false;};
+struct Session {int pid,app;uint64_t control=0,started=0;bool failed=false;std::string paths[PORT_PRX_MAX];unsigned reported[PORT_PRX_MAX]{};bool waiting_notified=false;PortGameArenaProtection arena{};};
 struct Request {std::string path,title,identity;bool enabled;};
 std::vector<Session> sessions;
 std::vector<Request> requests;
@@ -68,7 +69,9 @@ bool install(Session& s,const char** stage){
         if(pt_copyin(s.pid,h.code.bytes,h.stub,h.code.size))return false;
     }
     *stage="PRX loader writing helper and disabled control";
-    if(pt_copyin(s.pid,prx_gate_bytes,base,sizeof(prx_gate_bytes))||pt_copyin(s.pid,&control,data,sizeof(control))||kernel_mprotect(s.pid,base,0x4000,PROT_READ|PROT_EXEC))return false;
+    if(pt_copyin(s.pid,prx_gate_bytes,base,sizeof(prx_gate_bytes))||pt_copyin(s.pid,&control,data,sizeof(control)))return false;
+    *stage="split RX code / RW data using target mprotect";
+    if(!PortSealGameArena(s.pid,base,pt_mprotect,kernel_get_vmem_protection,s.arena))return false;
     bool ok=true;unsigned char check[14];
     *stage="PRX loader publishing verified private RX entries";
     for(auto& h:hooks){if(!h.target)continue;
@@ -128,6 +131,8 @@ void port_poll_prx(const std::string& title,int app){
     auto& s=*current;if(s.failed)return;
     if(!s.control){if(now-s.started<2000000000ull)return;const char* stage=nullptr;bool ok=install(s,&stage);
         experimental_event("game-prx",stage,pid,ok?0:errno);
+        char permissions[160];snprintf(permissions,sizeof(permissions),"arena mprotect=%d code=%d data=%d (expected 0/5/3)",s.arena.transition,s.arena.code,s.arena.data);
+        experimental_event("game-prx",permissions,pid,0);
         if(!ok){s.failed=true;notify(true,"Game PRX loader unavailable; diagnostic stage saved");return;}
     }
     for(auto& r:requests){if(r.title!=title)continue;

@@ -3,6 +3,7 @@
 // Publication uses etaHEN's stopped-thread, COW-write and relocation checks.
 #include "kernel.hpp"
 #include "port_kstuff.hpp"
+#include "port_game_arena.h"
 #include "experimental_trace.h"
 #include "../../shellui/include/fps_counter_stub.h"
 #include "../../fps_native/include/onion/fps_types.h"
@@ -20,7 +21,7 @@ int pt_getlwps(pid_t,int*,size_t);
 extern int get_game_pid();
 extern void notify(bool,const char*,...);
 namespace {
-struct Counter {int pid;int app;uint64_t address=0,target=0,stub=0,before=0,stamp=0;bool failed=false;int original_protection=-1,installed_protection=-1;};
+struct Counter {int pid;int app;uint64_t address=0,target=0,stub=0,before=0,stamp=0;bool failed=false;int original_protection=-1,installed_protection=-1;PortGameArenaProtection arena{};};
 std::vector<Counter> counters;
 uint64_t clock_ns(clockid_t id){timespec t{};return clock_gettime(id,&t)?0:uint64_t(t.tv_sec)*1000000000+t.tv_nsec;}
 uint64_t resolve_flip(int pid) {
@@ -70,7 +71,8 @@ bool install(Counter& record,const char** stage) {
         if(registers.r_rip>=target && registers.r_rip<target+code.stolen)return false;}
     *stage="PS4 FPS write trampoline";uint64_t zero=0;
     if(pt_copyin(record.pid,&zero,counter,8)||pt_copyin(record.pid,code.bytes,stub,code.size))return false;
-    if(kernel_mprotect(record.pid,stub,0x4000,PROT_READ|PROT_EXEC))return false;
+    *stage="PS4 FPS split RX code / RW data using target mprotect";
+    if(!PortSealGameArena(record.pid,stub,pt_mprotect,kernel_get_vmem_protection,record.arena))return false;
     unsigned char patch[14]={0xff,0x25,0,0,0,0};memcpy(patch+6,&stub,8);
     unsigned char check[14];
     *stage="PS4 FPS recheck original entry";
@@ -131,6 +133,8 @@ void port_poll_bc_fps(const std::string& title,int app) {
             "PS4 FPS entry permissions original=%d installed=%d target=0x%llx stub=0x%llx",
             counter.original_protection,counter.installed_protection,
             (unsigned long long)counter.target,(unsigned long long)counter.stub);
+        experimental_event("fps-bc",detail,pid,0);
+        snprintf(detail,sizeof(detail),"arena mprotect=%d code=%d data=%d (expected 0/5/3)",counter.arena.transition,counter.arena.code,counter.arena.data);
         experimental_event("fps-bc",detail,pid,0);
         if(!ok){counter.failed=true;notify(true,"PS4 FPS counter unavailable; diagnostic stage saved.");return;}
     }

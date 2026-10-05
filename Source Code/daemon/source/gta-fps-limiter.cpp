@@ -2,6 +2,7 @@
 // Private GTA V test plugin backend. All publication is serialized by jb_lock.
 #include "kernel.hpp"
 #include "port_kstuff.hpp"
+#include "port_game_arena.h"
 #include "port_plugin_runtime.h"
 #include "port_fps_limiter.h"
 #include "experimental_trace.h"
@@ -21,7 +22,7 @@ extern int get_game_pid();
 extern void notify(bool,const char*,...);
 namespace {
 struct Hook {uint64_t target=0,stub=0;int original=-1;bool published=false;unsigned char before[64]{},patch[14]{};FpsLimiterStub code{};};
-struct Session {int pid,app;uint64_t control=0,started=0,measure=0;bool failed=false,armed=false,announced=false;unsigned lane=0;};
+struct Session {int pid,app;uint64_t control=0,started=0,measure=0;bool failed=false,armed=false,announced=false;unsigned lane=0;PortGameArenaProtection arena{};bool read_failed=false;};
 std::vector<Session> sessions;
 uint64_t mono(){timespec t{};return clock_gettime(CLOCK_MONOTONIC,&t)?0:uint64_t(t.tv_sec)*1000000000+t.tv_nsec;}
 uint64_t resolve(int pid,const char* module,const char* nid){
@@ -65,7 +66,9 @@ bool install(Session& s,const char** stage){
         if(pt_copyin(s.pid,h.code.bytes,h.stub,h.code.size))return false;
     }
     *stage="GTA limiter writing helper and disabled control";
-    if(pt_copyin(s.pid,limiter_gate_bytes,base,sizeof(limiter_gate_bytes))||pt_copyin(s.pid,&control,data,sizeof(control))||kernel_mprotect(s.pid,base,0x4000,PROT_READ|PROT_EXEC))return false;
+    if(pt_copyin(s.pid,limiter_gate_bytes,base,sizeof(limiter_gate_bytes))||pt_copyin(s.pid,&control,data,sizeof(control)))return false;
+    *stage="split RX code / RW data using target mprotect";
+    if(!PortSealGameArena(s.pid,base,pt_mprotect,kernel_get_vmem_protection,s.arena))return false;
     bool ok=true;unsigned char check[14];
     *stage="GTA limiter publishing verified private RX entries";
     for(auto& h:hooks){if(!h.target)continue;
@@ -105,10 +108,16 @@ void port_poll_gta_fps_limiter(const std::string& title,int app){
     if(!armed){if(s.armed&&s.control){uint64_t zero=0;field(s,offsetof(FpsLimiterControl,lease_until),&zero,8);notify(true,"GTA V 15 FPS test limiter off");}s.armed=false;s.announced=false;return;}
     if(!s.control){if(now-s.started<2000000000ull)return;const char* stage=nullptr;bool ok=install(s,&stage);
         experimental_event("fps-limiter",stage,pid,ok?0:errno);
+        char permissions[160];snprintf(permissions,sizeof(permissions),"arena mprotect=%d code=%d data=%d (expected 0/5/3)",s.arena.transition,s.arena.code,s.arena.data);
+        experimental_event("fps-limiter",permissions,pid,0);
         if(!ok){s.failed=true;notify(true,"GTA V limiter could not install; diagnostic saved. FPS display is separate.");return;}
         s.measure=now;
     }
-    FpsLimiterControl observed{};if(kernel_proc_copyout(pid,s.control,&observed,sizeof(observed)))return;
+    FpsLimiterControl observed{};if(kernel_proc_copyout(pid,s.control,&observed,sizeof(observed))){
+        if(!s.read_failed){s.read_failed=true;experimental_event("fps-limiter","remote control read failed; no lease renewed",pid,errno);}
+        return;
+    }
+    if(s.read_failed){s.read_failed=false;experimental_event("fps-limiter","remote control read recovered",pid,0);}
     if(!s.lane){
         // Probe without delaying frames. Prefer EOP when it is actually used;
         // enabling just one lane avoids throttling nested submissions twice.
