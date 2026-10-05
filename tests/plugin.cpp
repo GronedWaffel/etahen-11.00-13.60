@@ -10,7 +10,9 @@ int main(int argc,char **argv) {
     std::string title;
     assert(port_game_plugin_path("/data/etaHEN/game_plugins/CUSA12345/test.plugin",&title) && title=="CUSA12345");
     assert(port_game_plugin_path("/data/etaHEN/game_plugins/PPSA12345/test.plugin",&title));
-    for(const char *path:{"/data/etaHEN/game_plugins/NPXS40047/test.plugin","/data/etaHEN/game_plugins/CUSA12345/../a.elf","/data/etaHEN/game_plugins/CUSA1234/test.plugin","/data/etaHEN/game_plugins/CUSA12345/a.elf.auto_start","/data/etaHEN/game_plugins/CUSA12345/a.sprx","/elsewhere/CUSA12345/a.elf"})assert(!port_game_plugin_path(path,&title));
+    for(const char *path:{"/data/etaHEN/game_plugins/NPXS40047/test.plugin","/data/etaHEN/game_plugins/CUSA12345/../a.elf","/data/etaHEN/game_plugins/CUSA1234/test.plugin","/data/etaHEN/game_plugins/CUSA12345/a.elf.auto_start","/elsewhere/CUSA12345/a.elf"})assert(!port_game_plugin_path(path,&title));
+    assert(port_game_plugin_path("/data/etaHEN/game_plugins/CUSA12345/menu.prx",&title));
+    assert(port_game_plugin_path("/data/etaHEN/game_plugins/PPSA12345/menu.sprx",&title));
     unsigned char elf[128] = {0};
     memcpy(elf, "\177ELF\2\1\1", 7);
     elf[16]=3; elf[18]=62; elf[52]=64; elf[54]=56; elf[56]=1;

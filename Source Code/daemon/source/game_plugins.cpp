@@ -22,16 +22,13 @@ static int session_pid=-1,session_app=-1;
 static std::string session_title;
 static std::set<std::string> attempted;
 // Called under jb_lock: the daemon loader shares its libelfldr scratch state.
-static bool load_locked(const std::string &path) {
+static bool load_locked(const std::string &path,bool automatic=false) {
+    if(port_prx_suffix(path.c_str())){extern bool port_request_prx(const std::string&,bool,bool);return port_request_prx(path,true,automatic);}
     std::string title,current;int app=-1;
-    if(!port_game_plugin_path(path,&title) || !Get_Running_App_TID(current,app) || current!=title)return false;
-    int pid=get_game_pid();char name[32]={};
-    if(pid<=1 || sceKernelGetProcessName(pid,name)<0)return false;
-    if(pid!=session_pid || app!=session_app || current!=session_title){
-        session_pid=pid;session_app=app;session_title=current;attempted.clear();
-    }
-    // Do not repeatedly restart a failing plugin in the same game session.
-    attempted.insert(path); // Auto-start is attempted once; manual start/stop may retry.
+    if(!port_game_plugin_path(path,&title))return false;
+    // Manual Start launches the watcher even on the dashboard. Automatic starts
+    // remain title-scoped; plugins own validation before touching a game.
+    if(automatic && (!Get_Running_App_TID(current,app) || current!=title))return false;
     struct stat st{};
     int fd=open(path.c_str(),O_RDONLY|O_NOFOLLOW);
     if(fd<0)return false;
@@ -45,31 +42,31 @@ static bool load_locked(const std::string &path) {
     }
     close(fd);PortPlugin info{};
     if(done!=image.size() || !port_plugin_parse(path.c_str(),image.data(),done,done,&info))return false;
-    // Revalidate the foreground game after file I/O, immediately before starting its plugin daemon.
-    int check=-1;std::string check_title;
-    if(!Get_Running_App_TID(check_title,check) || check!=app || check_title!=title || get_game_pid()!=pid)return false;
-    experimental_event("game-plugin","starting etaHEN .plugin daemon for matching game",pid,0);
+    if(automatic){int check=-1;std::string check_title;
+        if(!Get_Running_App_TID(check_title,check) || check!=app || check_title!=title)return false;}
+    experimental_event("game-plugin","starting plugin watcher; game need not be open for manual Start",app,0);
     bool ok=port_plugin_load(path.c_str(),STDOUT_FILENO,sceKernelGetProcessName,elfldr_spawn)!=0;
-    experimental_event("game-plugin",ok?"plugin process started; plugin owns game-specific initialization":"plugin process launch failed",pid,ok?0:errno);
+    experimental_event("game-plugin",ok?"plugin process started; plugin owns game-specific initialization":"plugin process launch failed",app,ok?0:errno);
     return ok;
 }
-bool port_load_game_plugin(const std::string &path) {
+bool port_load_game_plugin(const std::string &path,bool enabled) {
     pthread_mutex_lock(&jb_lock);
-    bool ok=load_locked(path);
+    extern bool port_request_prx(const std::string&,bool,bool);
+    bool ok=port_prx_suffix(path.c_str())?port_request_prx(path,enabled,false):(enabled&&load_locked(path));
     pthread_mutex_unlock(&jb_lock);
     return ok;
 }
 // Existing game monitor already owns jb_lock and calls this once per poll.
 void port_poll_game_plugins(const std::string &title,int app) {
     if(!port_game_title(title))return;
-    if(app!=session_app || title!=session_title){attempted.clear();session_pid=-1;}
+    if(app!=session_app || title!=session_title){attempted.clear();session_pid=-1;session_app=app;session_title=title;}
     std::string directory="/data/etaHEN/game_plugins/"+title;
     DIR *dir=opendir(directory.c_str());if(!dir)return;
     dirent *entry;
     while((entry=readdir(dir))){
-        if(!port_plugin_suffix(entry->d_name,".plugin"))continue;
+        if(!port_plugin_suffix(entry->d_name,".plugin")&&!port_prx_suffix(entry->d_name))continue;
         std::string path=directory+"/"+entry->d_name;
-        if(access((path+".auto_start").c_str(),F_OK)==0 && !attempted.count(path))load_locked(path);
+        if(access((path+".auto_start").c_str(),F_OK)==0 && attempted.insert(path).second)load_locked(path,true);
     }
     closedir(dir);
 }

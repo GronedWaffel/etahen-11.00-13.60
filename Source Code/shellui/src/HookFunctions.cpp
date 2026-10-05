@@ -1,4 +1,5 @@
 #include "../../include/port_plugin_runtime.h"
+#include "../../include/port_prx.h"
 #include "private-1240-p5.h"
 #include "port_kstuff.hpp"
 #include "port_toolbox_route.hpp"
@@ -1013,13 +1014,21 @@ void UpdateImposeStatusFlag_hook(MonoObject* scene, MonoObject* frontActiveScene
     UpdateImposeStatusFlag_Orig(scene, frontActiveScene);
 }
 
+struct PrxToggle { std::string path,name;bool enabled; };
+void* toggle_prx_thread(void* args){
+    auto request=(PrxToggle*)args;
+    bool ok=IPC_Client::getInstance(false).LaunchGamePlugin(request->path,request->enabled);
+    if(!ok)notify("PRX request failed: %s. Check module format, platform and log.",request->name.c_str());
+    else notify(request->enabled?"PRX armed for its game: %s":"PRX disarmed: %s. Close the game to unload an already loaded module.",request->name.c_str());
+    delete request;return nullptr;
+}
 void* load_plugin_thread(void* args) {
     Plugins *plugin = (Plugins*)args;
 
     notify("Loading Plugin %s ...", plugin->path.c_str());
     if (plugin->game) {
         bool ok=IPC_Client::getInstance(false).LaunchGamePlugin(plugin->path);
-        notify(ok ? "Game plugin process started: %s" : "Game plugin not loaded: %s. Check the running title and log; restart the game before retrying.",plugin->name.c_str());
+        notify(ok ? "Game plugin process started: %s" : "Game plugin not loaded: %s. Check the plugin file and diagnostic log.",plugin->name.c_str());
         delete plugin;
         return nullptr;
     }
@@ -1396,6 +1405,12 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             {
                 if (plugin.id == id)
                 {
+                    if(plugin.game && port_prx_suffix(plugin.path.c_str())){
+                        auto request=new PrxToggle{plugin.path,plugin.name,atol(value.c_str())!=0};pthread_t thread;
+                        if(!pthread_create(&thread,nullptr,toggle_prx_thread,request))pthread_detach(thread);
+                        else {delete request;notify("Could not start PRX request");}
+                        break;
+                    }
                     char pbuf[96];
                     snprintf(pbuf, sizeof(pbuf), "/system_tmp/%s.PID", plugin.tid.c_str());
                     int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
@@ -1982,6 +1997,7 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             }
         
             for (auto plugin : plugins_list) {
+                if(plugin.game&&port_prx_suffix(plugin.path.c_str())){IPC_Client::getInstance(false).LaunchGamePlugin(plugin.path,false);continue;}
                 // Game-targeted .plugin files run in their own daemon process too.
                 int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
                 if (pid > 0) {
@@ -2312,7 +2328,7 @@ int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element) {
     if (!plugins_list.empty()) {
         for (auto plugin : plugins_list) {
             if (plugin.id == id) {
-                s_MonoText = mono_string_new(Root_Domain, (port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName) > 0) ? "1" : "0");
+                s_MonoText = mono_string_new(Root_Domain, (plugin.game&&port_prx_suffix(plugin.path.c_str())?if_exists(("/system_tmp/"+plugin.tid+".PRX").c_str()):port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName)>0) ? "1" : "0");
             }
         }
     }

@@ -623,6 +623,10 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
 
     port_poll_game_plugins(tid,bappid);
+    extern void port_poll_gta_fps_limiter(const std::string&,int);
+    port_poll_gta_fps_limiter(tid,bappid);
+    extern void port_poll_prx(const std::string&,int);
+    port_poll_prx(tid,bappid);
 
     if( if_exists("/system_tmp/fps_enabled") && (tid.rfind("CUSA",0)==0 || tid.rfind("SCUS",0)==0 || tid.rfind("PCAS",0)==0 || tid.rfind("PCJS",0)==0 || tid.rfind("PCKS",0)==0 || tid.rfind("CUHJ",0)==0)){
         extern void port_poll_bc_fps(const std::string&,int);

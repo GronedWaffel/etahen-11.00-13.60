@@ -1103,15 +1103,18 @@ void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml) {
       while((file=readdir(files))){
         std::string path="/data/etaHEN/game_plugins/"+title+"/"+file->d_name;
         if(!port_game_plugin_path(path,nullptr))continue;
-        unsigned char prefix[128];struct stat st{};PortPlugin info{};
+        unsigned char prefix[16384];struct stat st{};PortPlugin info{};
         int fd=open(("/user"+path).c_str(),O_RDONLY);if(fd<0)continue;
         bool regular=fstat(fd,&st)==0 && S_ISREG(st.st_mode) && st.st_size>=64;
         ssize_t bytes=regular?read(fd,prefix,sizeof(prefix)):-1;close(fd);
-        if(bytes<0 || !port_plugin_parse(path.c_str(),prefix,(size_t)bytes,(size_t)st.st_size,&info))continue;
+        bool module=port_prx_suffix(path.c_str());int platform=0;
+        if(bytes<0)continue;
+        if(module){if(!port_prx_parse(prefix,(size_t)bytes,(size_t)st.st_size,&platform))continue;port_plugin_identity(path.c_str(),info.identity);}
+        else if(!port_plugin_parse(path.c_str(),prefix,(size_t)bytes,(size_t)st.st_size,&info))continue;
         Plugins item;item.game=true;item.path=path;item.shellui_path="/user"+path;
         item.name=file->d_name;item.tid=info.identity;item.version=info.version;
         item.id=std::string(plugins_xml?"id_plugin_game_":"id_auto_plugin_game_")+std::to_string(list.size()+1);
-        xml_buffer+="<toggle_switch id=\""+item.id+"\" title=\""+plugin_xml_escape(title+" - "+item.name+" (v"+item.version+")")+"\" second_title=\""+(plugins_xml?"Start or stop this plugin daemon. Matching game must be running to start.":"Start plugin daemon when this game runs.")+"\" value=\"0\"/>\n";
+        xml_buffer+="<toggle_switch id=\""+item.id+"\" title=\""+plugin_xml_escape(title+" - "+item.name+(module?" [game PRX]":" (v"+item.version+")"))+"\" second_title=\""+(module?(plugins_xml?"Arm before opening the game. Stop prevents future loads; close game to unload.":"Load module inside matching game on startup."):(plugins_xml?"Start or stop this plugin. Can start before opening the game.":"Start plugin daemon when this game runs."))+"\" value=\"0\"/>\n";
         list.push_back(item);
       }
       closedir(files);

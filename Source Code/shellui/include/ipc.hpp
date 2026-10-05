@@ -349,10 +349,10 @@ public:
     return IPC_Ret::NO_ERROR;
   }
 
-  bool LaunchGamePlugin(const std::string &path) {
+  bool LaunchGamePlugin(const std::string &path,bool enabled=true) {
     if (util_daemon) return false;
     std::string response;
-    return IPCSendCommand(BREW_LOAD_GAME_PLUGIN,response,nlohmann::json({{"plugin_path",path}}).dump());
+    return IPCSendCommand(BREW_LOAD_GAME_PLUGIN,response,nlohmann::json({{"plugin_path",path},{"enabled",enabled}}).dump());
   }
   IPC_Ret LaunchPlugin(std::string plugin_path, std::string tid) {
     if (!util_daemon) {

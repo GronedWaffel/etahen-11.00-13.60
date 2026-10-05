@@ -1068,9 +1068,10 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
 
   switch (command) {
   case BREW_LOAD_GAME_PLUGIN: {
-    extern bool port_load_game_plugin(const std::string &);
+    extern bool port_load_game_plugin(const std::string &,bool);
     const char *file=json_getPropertyValue(my_json,"plugin_path");
-    reply(sender_app, !file || !port_load_game_plugin(file));
+    const char *enabled=json_getPropertyValue(my_json,"enabled");
+    reply(sender_app, !file || !port_load_game_plugin(file,!enabled||strcmp(enabled,"false")));
     break;
   }
   case BREW_TEST_CONNECTION: {
