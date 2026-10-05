@@ -1,12 +1,12 @@
-<!-- snipers-experimental-release -->
-**Experimental multi-firmware downloads:** [Open the release with ELF / Windows assets](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-multifw-experimental.5). Targets 33 exact firmware versions from 7.00 through 13.60; 9.05 and 11.40 excluded. Community testing is still required. Stable 13.60 remains separate. [Experimental builder](https://sniperscheats.lol/builder/ex/) · [Experimental payloads](https://sniperscheats.lol/payloads/ex/).
-<!-- /snipers-experimental-release -->
+> **Unified update in development.** Multi-firmware work is now merged into the main source line. Firmware below 11.00 is no longer supported. The controller-input startup correction was confirmed by the owner on 13.60 and a community tester on 12.40. Community startup confirmations also exist for 11.20 and 13.40; this does not certify every firmware or feature. The release links below remain historical until the combined update is validated and published.
 
-# etaHEN 13.60 — unofficial source port
+The normal Toolbox icon and routes are retained. Fixed dashboard placement, system/game plugin improvements and PS4/PS5 FPS overlay integration are being prepared for this update.
 
-**PS5 13.60 port of etaHEN 2.5B, originally created by LightningMods and the etaHEN contributors.** Maintained here by GronedWaffel. This is an independent, experimental port, not an official etaHEN release. Please credit and support the [original etaHEN project](https://github.com/etaHEN/etaHEN).
+# etaHEN 13.60 â€” unofficial source port
 
-The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox card installer and regression tests is included. [Credits](CREDITS.md) · [Build instructions](BUILDING.md) · [Hardware validation](PORT-STATUS.md) · [Contributing](CONTRIBUTING.md) · [Original README](UPSTREAM-README.md)
+**PS5 11.00–13.60 port of etaHEN 2.5B, originally created by LightningMods and the etaHEN contributors.** Maintained here by GronedWaffel. This is an independent, experimental port, not an official etaHEN release. Please credit and support the [original etaHEN project](https://github.com/etaHEN/etaHEN).
+
+The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox card installer and regression tests is included. [Credits](CREDITS.md) Â· [Build instructions](BUILDING.md) Â· [Hardware validation](PORT-STATUS.md) Â· [Contributing](CONTRIBUTING.md) Â· [Original README](UPSTREAM-README.md)
 
 **[Download the PS5 13.60 r3 release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r3)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
 
@@ -27,7 +27,7 @@ The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox
 
 ## Use and validation
 
-This port targets **PS5 13.60 only** and requires a compatible jailbreak and ELF loader. The integrated host is [sniperscheats.lol](https://sniperscheats.lol/). Load one full payload after a fresh boot/jailbreak; do not stack it over an existing etaHEN instance.
+This development line targets the exact **11.00–13.60** profiles in `firmware-profiles.json` (11.40 remains excluded) and requires a compatible jailbreak and ELF loader. The integrated host is [sniperscheats.lol](https://sniperscheats.lol/). Load one full payload after a fresh boot/jailbreak; do not stack it over an existing etaHEN instance.
 
 The user confirmed the corrected website flow, fresh startup, automatic card installation, Toolbox navigation and PS5Debug Services action. FTP, service startup and guarded hook installation also have scoped hardware checks. This does **not** certify every original etaHEN feature or other firmware. The [validation record](PORT-STATUS.md) distinguishes successful checks from earlier diagnostic failures; referenced raw console artifacts are intentionally not published.
 

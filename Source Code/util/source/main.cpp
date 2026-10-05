@@ -205,14 +205,18 @@ int main(void) {
     global_conf.klog = true;
 	global_conf.legacy_cmd_server_exit = false;
 
-    unlink("/data/etaHEN/etaHEN_util_daemon.log");
-    unlink("/data/etaHEN/etaHEN_util_crash.log");
+    rename("/data/etaHEN/experimental-utility.log","/data/etaHEN/experimental-utility.previous.log");
+    rename("/data/etaHEN/experimental-utility-crash.log","/data/etaHEN/experimental-utility-crash.previous.log");
 
     etaHEN_log("=========== starting etaHEN Utilities... ===========");
    // if(!sceKernelIsTestKit())
    //     patchShellCoreTEST();
 
     LoadSettings();
+    port_result("utility","setting FTP",global_conf.FTP,0);
+    port_result("utility","setting DPI",global_conf.DPI,0);
+    port_result("utility","setting DPI_v2",global_conf.DPI_v2,0);
+    port_result("utility","setting allow_data",global_conf.allow_data,0);
 
     if(sceKernelIsTestKit()){
        etaHEN_log("Kit detected, patching acti time...");
@@ -222,7 +226,7 @@ int main(void) {
         port_stage("utility","before ShellCore data-mount inspection");
         etaHEN_log("Allowing data in sandbox");
         bool data_patch_applied=patchShellCore();
-        port_stage("utility","ShellCore data-mount inspection returned");
+        port_result("utility","ShellCore data-mount inspection",data_patch_applied,0);
         etaHEN_log(data_patch_applied?"Patched shellcore":"ShellCore data-mount patch not applied");
     }
 
@@ -231,7 +235,9 @@ int main(void) {
     port_stage("utility","starting IPC and HTTP");
     pthread_create(&ipc_server, NULL, IPC_loop, NULL);
 
-    if (!IniliatizeHTTP()) {
+    bool http_ready=IniliatizeHTTP();
+    port_result("utility","HTTP library initialized",http_ready,0);
+    if (!http_ready) {
         etaHEN_log("Failed to initialize HTTP lib");
         notify(true, "Failed to initialize the HTTP lib, downloading cheats will not work");
     }
@@ -266,7 +272,9 @@ int main(void) {
        // pthread_create(&j_ftp, NULL, start_j_ftp, NULL);   
 
         if (global_conf.FTP) {
-            if (StartFTP())
+            bool ftp_started=StartFTP();
+            port_result("utility","FTP start",ftp_started,ftp_started?0:errno);
+            if (ftp_started)
                 etaHEN_log("[Setting enabled] Starting FTP Server...");
         }
         
@@ -275,11 +283,13 @@ int main(void) {
         }
         
         if (global_conf.DPI) {
-            startDirectPKGInstaller(false);
+            bool dpi_started=startDirectPKGInstaller(false);
+            port_result("utility","DPI start",dpi_started,dpi_started?0:errno);
         }
 
         if (global_conf.DPI_v2) {
-            startDirectPKGInstaller(true);
+            bool dpi2_started=startDirectPKGInstaller(true);
+            port_result("utility","DPI v2 start",dpi2_started,dpi2_started?0:errno);
         }
 
         if(global_conf.klog){
@@ -299,6 +309,7 @@ int main(void) {
         if (global_conf.discord_rpc)
             pthread_join(discordRpcServerThread, NULL);
 
+        port_stage("utility","service startup complete; waiting for command service");
         pthread_join(cmd_server, NULL);
 
         if(global_conf.klog)

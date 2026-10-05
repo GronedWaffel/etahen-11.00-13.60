@@ -1,3 +1,4 @@
+#include "port_boot_abi.hpp"
 
 /* Copyright (C) 2025 etaHEN / LightningMods
 
@@ -955,7 +956,9 @@ int main(int argc, char const *argv[]) {
       shellui_log("Shellui Root Domain: %p", Root_Domain);
     }
 
+    PortTrace("Mono attach pending");
     void* port_mono_thread=mono_thread_attach(Root_Domain);
+    PortTrace("Mono attach returned");
 #ifdef ETAHEN_PORT_1360
     if(!port_mono_thread){shellui_log("Mono thread attach failed");return -1;}
     struct MonoThreadScope {
@@ -1216,14 +1219,61 @@ int main(int argc, char const *argv[]) {
       shellui_log("Failed to detour Func Set3");
     }
 
-    boot_orig = (bool( * )(MonoString * , int, BootActionArgument)) DetourFunction(Get_Address_of_Method(AppSystem_img, appsystem_namespace.c_str(), boot_helper.c_str(), boot_method.c_str(), 3), (void * )&uri_boot_hook);
-    if (!boot_orig) {
-      boot_orig_2 = (bool( * )(MonoString * , int)) DetourFunction(Get_Address_of_Method(AppSystem_img, appsystem_namespace.c_str(), boot_helper.c_str(), boot_method.c_str(), 2), (void * )&uri_boot_hook_2);
-      if (!boot_orig_2) {
-        notify("failed to detour Func Set4");
+    // Inspect the managed signature before choosing a native calling convention.
+    auto method_signature=(void*(*)(MonoMethod*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_method_signature");
+    auto signature_count=(unsigned(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_signature_get_param_count");
+    auto signature_instance=(int(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_signature_is_instance");
+    auto signature_return=(void*(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_signature_get_return_type");
+    auto signature_params=(void*(*)(void*,void**))kernel_dynlib_dlsym(-1,libmono_handle,"mono_signature_get_params");
+    auto type_name=(char*(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_type_get_name");
+    auto class_from_type=(MonoClass*(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_class_from_mono_type");
+    auto value_size=(int(*)(MonoClass*,unsigned*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_class_value_size");
+    auto class_is_enum=(int(*)(MonoClass*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_class_is_enum");
+    auto enum_basetype=(void*(*)(MonoClass*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_class_enum_basetype");
+    auto type_is_byref=(int(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_type_is_byref");
+    auto free_mono=(void(*)(void*))kernel_dynlib_dlsym(-1,libmono_handle,"mono_free");
+    if(!method_signature||!signature_count||!signature_instance||!signature_return||!signature_params||!type_name||!class_from_type||!value_size||!free_mono){notify("Boot signature inspection unavailable; Toolbox stopped");return -1;}
+    MonoClass* boot_class=mono_class_from_name(AppSystem_img,appsystem_namespace.c_str(),boot_helper.c_str());
+    if(!boot_class)return -1;
+    MonoMethod* boot_method_info=mono_class_get_method_from_name(boot_class,boot_method.c_str(),3);
+    if(!boot_method_info)boot_method_info=mono_class_get_method_from_name(boot_class,boot_method.c_str(),2);
+    if(!boot_method_info)return -1;
+    void* signature=method_signature(boot_method_info);if(!signature)return -1;
+    unsigned count=signature_count(signature);if(count!=2&&count!=3)return -1;
+    void* iter=nullptr;void* types[3]={};char* names[3]={};
+    for(unsigned i=0;i<count;i++){types[i]=signature_params(signature,&iter);if(types[i])names[i]=type_name(types[i]);}
+    void* return_type=signature_return(signature);char* return_name=return_type?type_name(return_type):nullptr;
+    unsigned alignment=0;int bytes=0;
+    if(count==3&&names[2]&&strstr(names[2],"System.Nullable")){MonoClass* klass=class_from_type(types[2]);if(klass)bytes=value_size(klass,&alignment);}
+    bool option_enum=false,option_is_enum=false;unsigned option_alignment=0;int option_bytes=0;char* option_base_name=nullptr;
+    const bool option_byref=!types[1]||!type_is_byref||type_is_byref(types[1]);
+    if(types[1]&&class_is_enum&&enum_basetype&&!option_byref){
+      MonoClass* option_class=class_from_type(types[1]);
+      if(option_class&&class_is_enum(option_class)){
+        option_is_enum=true;
+        void* base_type=enum_basetype(option_class);
+        if(base_type)option_base_name=type_name(base_type);
+        option_bytes=value_size(option_class,&option_alignment);
+        option_enum=port_boot_integer32_enum(true,option_base_name,option_bytes,option_alignment,false);
       }
     }
-
+    PortStatus("inspecting Mono Boot ABI");
+    const bool instance=signature_instance(signature)!=0;
+    const auto abi=port_boot_abi(count,instance,return_name,names[0],names[1],names[2],bytes,alignment,option_enum);
+    char abi_detail[192];
+    snprintf(abi_detail,sizeof(abi_detail),"Boot ABI %s n=%u this=%d enum=%d ref=%d base=%.20s opt=%d/%u ret=%.20s arg0=%.20s arg2=%.40s sz=%d/%u",
+      abi==PortBootAbi::Unsupported?"rejected":"accepted",count,instance,option_is_enum,option_byref,option_base_name?option_base_name:"null",option_bytes,option_alignment,return_name?return_name:"null",names[0]?names[0]:"null",names[2]?names[2]:"none",bytes,alignment);
+    if(option_base_name)free_mono(option_base_name);
+    for(auto name:names)if(name)free_mono(name);if(return_name)free_mono(return_name);
+    if(abi==PortBootAbi::Unsupported){notify("Unrecognized Boot signature; Toolbox stopped before hooking it");PortStatus(abi_detail);return -1;}
+    PortStatus(abi==PortBootAbi::TwoArguments?"Mono Boot ABI: two arguments":abi==PortBootAbi::StringArgument?"Mono Boot ABI: string argument":"Mono Boot ABI: nullable value argument");
+    const auto boot_address=Get_Address_of_Method(AppSystem_img,appsystem_namespace.c_str(),boot_helper.c_str(),boot_method.c_str(),count);
+    if(!boot_address)return -1;
+    void* installed=nullptr;
+    if(abi==PortBootAbi::TwoArguments)installed=(void*)(boot_orig_2=(bool(*)(MonoString*,int))DetourFunction(boot_address,(void*)&uri_boot_hook_2));
+    else if(abi==PortBootAbi::StringArgument)installed=(void*)(boot_orig_string=(bool(*)(MonoString*,int,MonoString*))DetourFunction(boot_address,(void*)&uri_boot_hook_string));
+    else installed=(void*)(boot_orig=(bool(*)(MonoString*,int,BootActionArgument))DetourFunction(boot_address,(void*)&uri_boot_hook));
+    if(!installed){notify("Boot hook installation failed");return -1;}
     CaptureScreen_orig_old = (void( * )(MonoObject *, int, long, int, MonoObject * )) DetourFunction(Get_Address_of_Method(capture_menu, capture_namespace.c_str(), capture_controller.c_str(), capture_screen.c_str(), 4), (void * )&CaptureScreen_old);
     if (!CaptureScreen_orig_old) {
         CaptureScreen_orig_new = (void( * )(MonoObject *, int, long, int, MonoString * , MonoObject * )) DetourFunction(Get_Address_of_Method(capture_menu, capture_namespace.c_str(), capture_controller.c_str(), capture_screen.c_str(), 5), (void * )&CaptureScreen_new);
@@ -1267,7 +1317,9 @@ int main(int argc, char const *argv[]) {
 #endif
 #ifndef ETAHEN_PORT_PROBE_HOOKS
     IPC_Client & main_ipc = IPC_Client::getInstance(false);
+    PortTrace("daemon testkit check pending");
     is_testkit = main_ipc.IsTestKit();
+    PortTrace("daemon testkit check returned");
     if (is_testkit) {
       shellui_log("TestKit Detected, applying shellui testkit hooks");
       Start_Kit_Hooks();
@@ -1283,6 +1335,7 @@ int main(int argc, char const *argv[]) {
     // Restore normal authid
     //
 #ifdef ETAHEN_PORT_1360
+    PortTrace("hook publication pending");
     if(!hook_transaction.commit()){
       shellui_log("13.60 hook transaction failed; original code restored where possible");
       return -1;
@@ -1298,7 +1351,9 @@ int main(int argc, char const *argv[]) {
     FinishPortExternalPublication();
     return restored?0:1;
 #else
+    PortTrace("version setter pending");
     SetVersionString(final_ver.c_str());
+    PortTrace("version setter returned");
 #endif
 #endif
     set_proc_authid(pid, old_authid);
@@ -1311,7 +1366,9 @@ int main(int argc, char const *argv[]) {
 #ifdef ETAHEN_PORT_1360
     // Managed initialization is complete. Do not keep an attached Mono thread
     // blocked indefinitely in the native sleep loop below.
+    PortTrace("Mono detach pending");
     mono_thread_scope.detach();
+    PortTrace("Mono detach returned");
 #endif
 
 
@@ -1328,7 +1385,7 @@ int main(int argc, char const *argv[]) {
     // file to let the main daemon know that its finished loading
     touch_file("/system_tmp/toolbox_online");
 #ifdef ETAHEN_PORT_1360
-    FILE* port_pid=fopen("/system_tmp/etahen-1360-toolbox.pid","w");
+    FILE* port_pid=fopen("/system_tmp/etahen-experimental-toolbox.pid","w");
     if(port_pid){fprintf(port_pid,"%d",pid);fclose(port_pid);}
     FinishPortExternalPublication();
 #endif

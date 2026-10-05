@@ -2,8 +2,14 @@ import {root,source,sdk,common,cxx,run} from './toolchain.mjs';
 import {mkdir,readdir,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-const out=path.join(root,'build/bootstrapper');await mkdir(out,{recursive:true});
-const shellManifest=JSON.parse(await readFile(path.join(root,'build/shellui/manifest.json'),'utf8'));
+const profile=process.argv.includes('--startup-profile');
+const trace=process.argv.includes('--shellui-trace');
+const diagnostic=trace||process.argv.includes('--toolbox-diagnostic');
+if(diagnostic&&profile)throw Error('Choose one isolated candidate');
+const diagnosticRoot=trace?'build/shellui-trace':'build/toolbox-diagnostic';
+const out=path.join(root,diagnostic?diagnosticRoot+'/bootstrapper':profile?'build/startup-profile/bootstrapper':'build/bootstrapper');await mkdir(out,{recursive:true});
+const flags=profile?[...common,'-DETAHEN_STARTUP_PROFILE=1']:common;
+const shellManifest=JSON.parse(await readFile(path.join(root,trace?'build/shellui-trace/shellui/manifest.json':'build/shellui/manifest.json'),'utf8'));
 if(shellManifest.prepareOnly!==false)throw Error('Rebuild ShellUI without ETAHEN_PORT_PREPARE_ONLY before packaging the full payload');
 if(shellManifest.probeHooks)throw Error('Rebuild ShellUI without the temporary hook probe before packaging the full payload');
 const kstuff=path.join(source,'bootstrapper/assets/kstuff.elf');
@@ -14,10 +20,15 @@ const cardHash=createHash('sha256').update(await readFile(cardPath)).digest('hex
 if(cardManifest.files.find(f=>f.file==='toolbox-card-install.elf')?.sha256!==cardHash)throw Error('Card installer does not match its manifest');
 const assets={daemon:path.join(root,'build/daemon/daemon.elf'),util:path.join(root,'build/util/util.elf'),toolbox_card:cardPath,store_png:path.join(source,'bootstrapper/assets/store.png'),sicon:path.join(source,'bootstrapper/assets/etahen_sicon.png'),webman_icon:path.join(source,'bootstrapper/assets/webMAN.png'),kstuff,fps_prx:path.join(source,'bootstrapper/assets/fps.prx')};
 const embed=path.join(out,'embedded.S');
+if(diagnostic)assets.daemon=path.join(root,diagnosticRoot+'/daemon/daemon.elf');
+if(profile)assets.daemon=path.join(root,'build/startup-profile/daemon/daemon.elf');
 await writeFile(embed,'.section .data\n'+Object.entries(assets).map(([n,p])=>`.balign 16\n.global ${n}_start\n${n}_start:\n.incbin "${p.replaceAll('\\','/')}"\n${n}_end:\n.balign 4\n.global ${n}_size\n${n}_size:\n.long ${n}_end - ${n}_start\n`).join('\n'));
 const files=[embed];for(const dir of ['bootstrapper/source','extern/tiny-json','extern/cJSON'])for(const f of await readdir(path.join(source,dir)))if(/\.(cpp|c|s)$/.test(f)&&!['daemon.c','elfldr.c','pt.c'].includes(f))files.push(path.join(source,dir,f));files.push(path.join(source,'lib/backtrace.cpp'));
-const objects=[path.join(root,'build/core/libelfldr-elfldr.c.o'),path.join(root,'build/core/libNineS-pt.c.o')];
-for(const file of files){const obj=path.join(out,path.basename(file)+'.o');run(['cc',...(file.endsWith('.cpp')?cxx:[]),...common,'-fexceptions','-I',path.join(source,'include'),'-I',path.join(source,'bootstrapper/include'),'-I',path.join(source,'libelfldr/include'),'-c',file,'-o',obj]);objects.push(obj);console.log('Compiled',path.basename(file));}
-const elf=path.join(root,'build/etaHEN-13.60-experimental.elf');
+const objects=profile?['elfldr.c.o','pt.c.o'].map(f=>path.join(root,'build/startup-profile',f)):[path.join(root,'build/core/libelfldr-elfldr.c.o'),path.join(root,'build/core/libNineS-pt.c.o')];
+for(const file of files){const obj=path.join(out,path.basename(file)+'.o');run(['cc',...(file.endsWith('.cpp')?cxx:[]),...flags,'-fexceptions','-I',path.join(source,'include'),'-I',path.join(source,'bootstrapper/include'),'-I',path.join(source,'libelfldr/include'),'-c',file,'-o',obj]);objects.push(obj);console.log('Compiled',path.basename(file));}
+const elf=path.join(root,diagnostic?diagnosticRoot+'/etaHEN-13.60-toolbox-diagnostic.elf':profile?'build/startup-profile/etaHEN-13.60-startup-profile.elf':'build/etaHEN-multifw-experimental.elf');
 run(['ld.lld','--no-dependent-libraries','-pie','--hash-style=gnu','-z','max-page-size=0x4000','-T',path.join(sdk,'ldscripts/elf_x86_64.x'),...objects,path.join(sdk,'target/lib/crt1.o'),'-L',path.join(sdk,'target/lib'),'-L',path.join(root,'dependencies/lib'),'-L',path.join(source,'lib'),'--start-group',...['libNineS','libelfldr'].map(n=>path.join(root,'build/core/'+n+'.a')),'-lsqlite3',...['c++','c++abi','unwind','c'].map(l=>path.join(sdk,'target/lib/lib'+l+'.a')),'-ldl','--end-group','--no-as-needed',...['SceSystemService','SceUserService','kernel_sys','SceNotification','SceLibcInternal','SceNet'].map(l=>'-l'+l),'-o',elf]);
-const data=await readFile(elf);const manifest={name:'Unofficial etaHEN 2.5B experimental 13.60 port',firmware:'13.60',bytes:data.length,sha256:createHash('sha256').update(data).digest('hex'),kstuff:'EchoStretch/kstuff-lite v1.11',hardwareValidated:false};await writeFile(path.join(root,'build/manifest.json'),JSON.stringify(manifest,null,2));console.log(JSON.stringify(manifest));
+const diagnosticHeader=await readFile(path.join(source,'include/experimental_trace.h'),'utf8');
+const diagnosticBuild=/^#define EXPERIMENTAL_DIAGNOSTIC_BUILD "([A-Za-z0-9._-]+)"/m.exec(diagnosticHeader)?.[1];
+if(!diagnosticBuild)throw Error('Missing experimental diagnostic build identity');
+const data=await readFile(elf);if(!data.includes(Buffer.from(diagnosticBuild)))throw Error('Built ELF is missing its diagnostic identity');const manifest={name:'Unofficial etaHEN 2.5B multi-firmware community test',startupProfile:profile,toolboxDiagnostic:diagnostic,firmwares:JSON.parse(await readFile(path.join(root,'firmware-profiles.json'),'utf8')).firmwares.map(p=>p.firmware),channel:'experimental',diagnosticBuild,diagnosticSchema:1,bytes:data.length,sha256:createHash('sha256').update(data).digest('hex'),kstuff:'EchoStretch/kstuff-lite v1.11',hardwareValidated:false};await writeFile(path.join(root,diagnostic?diagnosticRoot+'/manifest.json':profile?'build/startup-profile/manifest.json':'build/manifest.json'),JSON.stringify(manifest,null,2));console.log(JSON.stringify(manifest));

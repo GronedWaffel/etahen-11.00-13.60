@@ -662,3 +662,6 @@ int sceRegMgrGetInt_hook(long regid, int* out_val);
 void generate_custom_pkg_xml(std::string& xml_buffer);
 void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoString* label = nullptr, MonoString* actionUrl = nullptr, MonoString* actionId = nullptr, MonoString* messageId = nullptr, MonoObject* subMenu = nullptr, bool enable = true);
 /* ================================= HOOKED MONO FUNCS ============================================= */
+
+extern bool (*boot_orig_string)(MonoString*,int,MonoString*);
+bool uri_boot_hook_string(MonoString*,int,MonoString*);

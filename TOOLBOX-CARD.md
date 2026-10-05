@@ -1,10 +1,14 @@
-# etaHEN Toolbox home-screen card (13.60)
+# etaHEN Toolbox home-screen card (experimental multi-firmware)
+
+Experimental r5 enables the helper on every exact supported firmware profile (7.00–13.60, excluding 9.05 and 11.40). Firmware below 11.00 uses the standard settings route; 11.00 and newer use the legacy route identified by [OnionHEN settings profiles](https://github.com/aydencharles/onionHEN/blob/b23ffe674b2de9f62fe634944c9230ff149d593a/source/include/onion/debug_settings_route_policy.hpp). Both two- and three-argument Boot hooks handle the card URI and reset stale Cheats/Games shortcut state. Lower-firmware card installation/opening is not hardware-validated; the prior r4 report confirms Toolbox initialization on 11.20, not the new card.
+
+Registration uses resolved AppInstUtil exports: single-title registration when present, otherwise the existing registration scan. Missing required exports stop the helper with diagnostics. `toolbox-card` trace events record profile, export availability, registration result and authorization restoration in the normal uploaded experimental log. The historical title ID and ownership marker are retained so an existing 13.60 card is reused without another scan.
 
 The main etaHEN ELF automatically installs a separate Games-category deep link named **etaHEN Toolbox**, title ID `ETHN13600`. It opens the legacy Toolbox route instead of Sony's newer native Debug Settings page. It needs etaHEN's Toolbox hooks running after each jailbreak. Selecting the card does not reload etaHEN, kstuff or a debugger.
 
 Build everything with `node scripts/build-all.mjs`, or just the card tools with `node scripts/build-toolbox-card.mjs`.
 
-- `build/etaHEN-13.60-experimental.elf` embeds and starts the card installer automatically after spawning the main services. Users need only this ELF.
+- `build/etaHEN-multifw-experimental.elf` embeds and starts the card installer automatically after spawning the main services. Users need only this ELF.
 - `build/toolbox-card-install.elf` is the separately usable installer embedded in the main ELF. It stages its icon and metadata under `/user/app/ETHN13600`, then registers the card.
 - `build/toolbox-card-remove.elf` removes only this title after verifying its ownership marker. Removal and reinstallation were hardware-tested. Loading the main ELF again recreates a removed card.
 - `build/toolbox-launch.elf` opens the legacy route directly without installing a card.

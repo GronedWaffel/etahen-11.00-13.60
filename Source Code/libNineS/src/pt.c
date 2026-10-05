@@ -32,6 +32,8 @@ along with this program; see the file COPYING. If not, see
 #include <ps5/klog.h>
 
 #include "../include/pt.h"
+#include "port_timing.h"
+#include "port_diagnostic.h"
 
 
 static int
@@ -55,6 +57,7 @@ sys_ptrace(int request, pid_t pid, caddr_t addr, int data) {
   }
 
   ret = (int)syscall(SYS_ptrace, request, pid, addr, data);
+  if(ret<0)port_diag("ptrace-error",(unsigned)request,ret,errno);
 
   int restore_caps=kernel_set_ucred_caps(mypid,caps);
   int restore_auth=kernel_set_ucred_authid(mypid,authid);
@@ -78,15 +81,25 @@ pt_resolve(pid_t pid, const char* nid) {
 
 int
 pt_attach(pid_t pid) {
+  port_diag("attach-begin",pid,0,0);port_diag_flush();
   puts("ptrace attach request");
   if(sys_ptrace(PT_ATTACH, pid, 0, 0) == -1) {
     perror("ptrace attach");
     return -1;
   }
   puts("ptrace attach accepted; waiting for stop");
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
+  port_diag("attach-accepted",pid,0,0);
+  int wait_status=0;
+  int waited=waitpid(pid,&wait_status,0);
+  port_diag("attach-wait",pid,waited,waited<0?errno:0);
+  port_diag("attach-wait-status",pid,wait_status,0);
+  if(waited==-1)return -1;
+#else
   if(waitpid(pid, 0, 0) == -1) {
     return -1;
   }
+#endif
 
   return 0;
 }
@@ -94,9 +107,12 @@ pt_attach(pid_t pid) {
 
 int
 pt_detach(pid_t pid, int sig) {
+  port_diag("detach-begin",pid,sig,0);
   if(sys_ptrace(PT_DETACH, pid, 0, sig) == -1) {
+    port_diag("detach-failed",pid,-1,errno);
     return -1;
   }
+  port_diag("detach-ok",pid,0,0);port_diag_flush();
 
   return 0;
 }
@@ -108,9 +124,17 @@ pt_step(int pid) {
     return -1;
   }
 
+#if defined(ETAHEN_TOOLBOX_DIAGNOSTIC) || defined(ETAHEN_EXPERIMENTAL_DIAGNOSTICS)
+  int wait_status=0;
+  int waited=waitpid(pid,&wait_status,0);
+  port_diag("step-wait",pid,waited,waited<0?errno:0);
+  port_diag("step-wait-status",pid,wait_status,0);
+  if(waited<0)return -1;
+#else
   if(waitpid(pid, 0, 0) < 0) {
     return -1;
   }
+#endif
 
   return 0;
 }
@@ -159,24 +183,31 @@ pt_setregs(pid_t pid, const struct reg *r) {
 int
 pt_copyin(pid_t pid, const void* buf, intptr_t addr, size_t len) {
 #ifdef ETAHEN_PORT_1360
+  const uint64_t write_started=port_timing_now();
   struct ptrace_io_desc iod = {
     .piod_op = PIOD_WRITE_D, .piod_offs = (void*)addr,
     .piod_addr = (void*)buf, .piod_len = len};
   int result=sys_ptrace(PT_IO,pid,(caddr_t)&iod,0);
+  port_diag("copyin",addr,result,result?errno:0);
+  port_diag("copyin-length",len,iod.piod_len,0);
+  port_timing_end("write",pid,write_started,len);
   printf("ptrace memory write: %d, errno %d, length %zu/%zu\n",result,errno,iod.piod_len,len);
   if(result || iod.piod_len!=len) return -1;
   // Some SDK mdbg paths return success after a short transfer. Verify every
   // byte before allowing the injector to execute the remote image.
+  const uint64_t verify_started=port_timing_now();
   unsigned char check[4096];
   for(size_t offset=0;offset<len;) {
     size_t count=0x1000-((addr+offset)&0xfff);if(count>len-offset)count=len-offset;
     if(kernel_proc_copyout(pid,addr+offset,check,count) ||
        memcmp(check,(const unsigned char*)buf+offset,count)) {
+      port_diag("copyin-verify-failed",addr+offset,count,errno);
       errno=EIO;
       return -1;
     }
     offset+=count;
   }
+  port_timing_end("verify",pid,verify_started,len);
   return 0;
 #else
   struct ptrace_io_desc iod = {
@@ -360,6 +391,7 @@ pt_call2(pid_t pid, intptr_t addr, ...)
 
 long
 pt_syscall(pid_t pid, int sysno, ...) {
+  const uint64_t started=port_timing_now();
   printf("Remote syscall %d: resolve\n",sysno);
   intptr_t addr = pt_resolve(pid, "HoLVWNanBBc");
   struct reg jmp_reg;
@@ -404,6 +436,7 @@ pt_syscall(pid_t pid, int sysno, ...) {
   printf("Remote syscall step result %d\n",failed);
   long result=failed || (jmp_reg.r_rflags & 1) ? -1 : jmp_reg.r_rax;
   if(pt_setregs(pid,&bak_reg)) return -1;
+  port_timing_end("remote-syscall",pid,started,(uint64_t)sysno);
   return result;
 }
 

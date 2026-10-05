@@ -84,7 +84,14 @@ void PatchInJump(uint64_t address, void * destination) {
 
 void * DetourFunction(uint64_t address, void * destination) {
 #ifdef ETAHEN_PORT_1360
+#ifdef ETAHEN_SHELLUI_TRACE
+  PortTrace("hook preparation pending");
+  auto result=PortDetourFunction(address,destination,[](const char* stage){PortTrace("hook preparation",stage);});
+  PortTrace("hook preparation returned");
+  return result;
+#else
   return PortDetourFunction(address,destination);
+#endif
 #else
   if (!address || !destination)
     return 0;

@@ -476,6 +476,7 @@ void KillAllWithName(const char * name, int signal){
 
 uint64_t Get_Address_of_Method(MonoImage *Assembly_Image, const char *Name_Space, const char *Class_Name, const char *Method_Name, int Param_Count)
 {
+  PortTrace("class lookup pending",Class_Name);
   MonoClass *klass = mono_class_from_name(Assembly_Image, Name_Space, Class_Name);
   if (!klass)
   {
@@ -485,6 +486,7 @@ uint64_t Get_Address_of_Method(MonoImage *Assembly_Image, const char *Name_Space
     return 0;
   }
 
+  PortTrace("method lookup pending",Method_Name);
   MonoMethod *Method = mono_class_get_method_from_name(klass, Method_Name, Param_Count);
   if (!Method)
   {
@@ -495,7 +497,10 @@ uint64_t Get_Address_of_Method(MonoImage *Assembly_Image, const char *Name_Space
   }
 
   // return (uint64_t)mono_aot_get_method(Root_Domain, Method);
-  return mono_compile_method(Method);
+  PortTrace("method compile pending",Method_Name);
+  auto compiled=mono_compile_method(Method);
+  PortTrace("method compile returned",Method_Name);
+  return compiled;
 }
 
 uint64_t Get_Address_of_Method(MonoImage* Assembly_Image, MonoClass* klass, const char* Method_Name, int Param_Count)
