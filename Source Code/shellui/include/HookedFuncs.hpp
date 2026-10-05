@@ -672,3 +672,6 @@ MonoObject* OverlayRoot();
 MonoObject* OverlayFind(MonoObject*, const char*);
 bool OverlayText(MonoObject*, const char*);
 void InvalidateFpsWidgets();
+
+void StartFpsUiReader();
+void ReadCachedFps(char*, size_t);

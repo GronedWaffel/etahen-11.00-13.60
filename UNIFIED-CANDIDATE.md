@@ -1,4 +1,4 @@
-# Unified development candidate — 2026-10-05 (dev3 card/overlay candidate and plugin correction)
+# Unified development candidate — 2026-10-05 (dev4 FPS render isolation)
 
 This is a local test build, not a public release or website deployment. The controller-startup correction was previously confirmed on 13.60 and 12.40. The combined card/plugin/FPS changes have passed host checks and compilation but are not yet hardware validated.
 
@@ -26,7 +26,7 @@ Automatic startup still uses a sibling `<filename>.auto_start` marker controlled
 2. Check whether the Toolbox card is left of Store after the normal dashboard update. This candidate transactionally changes only its own registered card's sort priority; it does not force a dashboard reload. Original priority is saved in `/data/etaHEN/toolbox-card-order-original.json`. Placement was confirmed by the user; click routing is under investigation.
 3. Open Plugins, start the system fixture, confirm its notification, and stop it. A repeated start should not create another copy.
 4. Start the game-aware `.plugin` from Toolbox, then launch games. Confirm its game-detected notifications and heartbeat log. Stop it from Toolbox and confirm its PID disappears. This tests daemon lifecycle/game detection, not game-code injection.
-5. **FPS testing is on hold.** Dev1 produced a user-reported system-software error while testing GTA V, with a confirmed ShellUI PID restart. FPS is disabled in the console test configuration pending fault isolation; do not enable it for plugin tests.
+5. Dev1 and dev3 failed the GTA V FPS test. Keep FPS off for card/plugin checks. On a fresh dev4 session, explicitly enable FPS for the separate GTA V test described below; record whether a numeric value appears and whether ShellUI remains responsive.
 
 Native PS5 sampling follows OnionHEN's render/scanout estimation. The PS4 counter counts successful GNM submit/flip calls. Some games may use other paths or multiple submissions, so neither is yet certified for every game. A deliberate 15 FPS test limiter is a later fixture once the relevant game's frame hook has been verified.
 
@@ -46,3 +46,12 @@ The user confirmed the Toolbox tile appeared left of Store, but could not launch
 The registered `pshome:gamehub?titleId=ETHN13600` route now redirects to Toolbox, in addition to its existing direct deep link. Routing tests cover both Boot ABIs and reject unrelated game IDs. Whether the pinned tile actually dispatches that route needs a console check; clicking the tile has not yet been proved fixed.
 
 FPS widget creation/removal is deferred from settings handlers to the render callback. Existing named widgets are reused rather than duplicated. Overlay access resolves the current Game scene with checked managed invocation instead of keeping a scene pointer for FPS. FPS text exceptions disable sampling for the session, and UI phases are recorded in the existing journal. CPU discovery only runs when a CPU overlay needs it. These address concrete code defects and improve fault isolation; they are not proof of the cause of the dev1 ShellUI restart. Console FPS remains off for the first card/plugin test.
+
+
+### Dev3 hardware result / Dev4 correction
+
+User confirmed the pinned Toolbox card opens. Enabling FPS and starting GTA V still produced CE-108262-9. The captured dev3 journal completes sample reads until sequence 685, then stops at `FPS render reading sample`, before scene lookup/widget creation; ShellUI PID 58 subsequently becomes 97. Three Toolbox route requests returned successfully before that restart. Card registration files survive, but ShellUI hooks do not, explaining why the tile no longer opens afterward. Re-sending the payload was correctly rejected because resident etaHEN services remained.
+
+The stalled render function performed synchronous app-service queries and sample-file mapping. This evidence localizes the freeze to that function, but does not identify which individual call blocked. Dev4 removes the whole blocking path from the UI thread: no app-service query is issued by FPS display code, and only a background worker reads bounded sample records. The renderer reads one lock-free fixed-point value with a monotonic expiry. Files are read twice and compared rather than mapped into ShellUI. A newer game record without a valid measurement clears the display instead of retaining an old game's FPS. Freshness is limited by the original sampler timestamp; a blocked reader cannot extend it.
+
+Dev4 passes 16 host checks and requires a fresh console test. FPS remains disabled in the saved console configuration. First verify Toolbox still opens, then enable FPS and start GTA V. Confirm both absence of the system error and an actual numeric reading; a `--` display alone is not a working FPS measurement. Do not resend etaHEN over surviving services following a ShellUI crash; use a fresh boot/jailbreak. No public release, website artifact or YouTube image has been changed.

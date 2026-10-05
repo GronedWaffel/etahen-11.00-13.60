@@ -1,4 +1,4 @@
-#include <onion/fps_sample.h>
+
 #include "private-1240-p5.h"
 #include "port_boot_abi.hpp"
 
@@ -369,16 +369,6 @@ ssize_t(*read_orig)(int fd, void *buf, size_t count) = nullptr;
 ssize_t read_hook(int fd, void* buf, size_t count) {
     return read_orig(fd,buf,count);
 }
-static std::string current_game_fps() {
-    static OnionFpsSample *native=nullptr,*bc=nullptr;
-    char title[32]={};int app=sceSystemServiceGetAppIdOfRunningBigApp();
-    if(app<0 || sceSystemServiceGetAppTitleId(app,title))return "--";
-    bool ps5=!strncmp(title,"PPSA",4)||!strncmp(title,"PPSB",4);
-    OnionFpsSample sample{};
-    int rc=onion_fps_read_path(ps5?"/system_tmp/etahen_fps_native.sample":"/system_tmp/etahen_fps_bc.sample",ps5?&native:&bc,&sample);
-    if(rc || strcmp(sample.title_id,title))return "--";
-    char text[32];snprintf(text,sizeof(text),"%.1f",sample.fps);return text;
-}
 
 static std::atomic_bool fps_widgets_dirty{false};
 void InvalidateFpsWidgets(){fps_widgets_dirty.store(true);}
@@ -549,8 +539,8 @@ void OnRender_Hook(MonoObject* instance)
             Set_Property(mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Label"), ram_value, "Text", mono_string_new(Root_Domain, RAM_STR));
 		}
         if (global_conf.overlay_fps) {
-            P5Event("FPS render reading sample");
-            std::string current_fps = current_game_fps();
+            P5Event("FPS render reading atomic cache");
+            char current_fps[24];ReadCachedFps(current_fps,sizeof(current_fps));
             P5Event("FPS render finding current scene");
             auto fps_root = OverlayRoot();
             if(fps_root){
@@ -560,7 +550,7 @@ void OnRender_Hook(MonoObject* instance)
                 }
                 P5Event("FPS render updating text");
                 auto label = OverlayFind(fps_root,"id_fps_value");
-                if(label && !OverlayText(label,current_fps.c_str())){
+                if(label && !OverlayText(label,current_fps)){
                     global_conf.overlay_fps=false;
                     unlink("/system_tmp/fps_enabled");
                     InvalidateFpsWidgets();
@@ -1561,6 +1551,8 @@ int main(int argc, char const *argv[]) {
 #endif
     pthread_t thread_id;
     scePthreadCreate(&thread_id, nullptr, dialogue_thread, nullptr, "dialogue_thread");
+
+    StartFpsUiReader();
 
     // file to let the main daemon know that its finished loading
     if(touch_file("/system_tmp/toolbox_online"))P5Ready();
