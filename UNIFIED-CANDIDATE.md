@@ -1,6 +1,6 @@
-# Unified development candidate — 2026-10-05 (dev5 overlay initialization and external PS4 counter)
+# Unified development history — released as Unified r1
 
-This is a local test build, not a public release or website deployment. The controller-startup correction was previously confirmed on 13.60 and 12.40. The combined card/plugin/FPS changes have passed host checks and compilation but are not yet hardware validated.
+These are chronological development notes. The owner confirmed dev8 PS4 FPS and approved release; see RELEASE-NOTES-unified-r1.md and PORT-STATUS.md for current validation. Earlier pending/failure statements below describe those earlier candidates. The GTA limiter failed and is not a release feature.
 
 ## Firmware and configuration
 

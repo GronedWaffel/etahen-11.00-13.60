@@ -1,52 +1,37 @@
-> **Unified update in development.** Multi-firmware work is now merged into the main source line. Firmware below 11.00 is no longer supported. The controller-input startup correction was confirmed by the owner on 13.60 and a community tester on 12.40. Community startup confirmations also exist for 11.20 and 13.40; this does not certify every firmware or feature. The release links below remain historical until the combined update is validated and published.
+# etaHEN Unified — unofficial PS5 11.00–13.60 port
 
-The normal Toolbox icon and routes are retained. Fixed dashboard placement, system/game plugin improvements and PS4/PS5 FPS overlay integration are being prepared for this update.
+**[Download etaHEN 2.5B Unified r1](https://github.com/GronedWaffel/etahen-11.00-13.60/releases/tag/v2.5B-unified.1)** — choose `etaHEN-11.00-13.60.elf`.
 
-# etaHEN 13.60 â€” unofficial source port
+Based on etaHEN 2.5B by **LightningMods and the etaHEN contributors**, maintained here by **GronedWaffel**. This is an independent community release, not an official etaHEN release. Please credit and support [etaHEN](https://github.com/etaHEN/etaHEN).
 
-**PS5 11.00–13.60 port of etaHEN 2.5B, originally created by LightningMods and the etaHEN contributors.** Maintained here by GronedWaffel. This is an independent, experimental port, not an official etaHEN release. Please credit and support the [original etaHEN project](https://github.com/etaHEN/etaHEN).
+The multi-firmware source is merged into `main`. Unified r1 includes the controller-input startup correction, the working Toolbox card to the left of Store, system/game `.plugin` support, native game `.prx` / `.sprx` loading, and PS4/PS5 FPS display. The unsuccessful GTA limiter experiment is not included as a release feature or downloadable plugin.
 
-The source for the port, bootstrap, services, ShellUI changes, automatic Toolbox card installer and regression tests is included. [Credits](CREDITS.md) Â· [Build instructions](BUILDING.md) Â· [Hardware validation](PORT-STATUS.md) Â· [Contributing](CONTRIBUTING.md) Â· [Original README](UPSTREAM-README.md)
+[Release notes](RELEASE-NOTES-unified-r1.md) · [Credits](CREDITS.md) · [Build instructions](BUILDING.md) · [Validation record](PORT-STATUS.md) · [Contributing](CONTRIBUTING.md) · [Original README](UPSTREAM-README.md)
 
-**[Download the PS5 13.60 r3 release](https://github.com/GronedWaffel/etahen-13.60/releases/tag/v2.5B-13.60-r3)**. Choose `etaHEN-13.60.elf`; source archives and SHA-256 checksums are attached to the same release.
+## Firmware and startup
 
-**Recommended for this etaHEN 13.60 r3 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r3/etaHEN-13.60_Standalone-ShadowMount.elf).** This custom ShadowMount build is matched to bundled kstuff-lite v1.11. Load etaHEN first on a fresh jailbreak, wait until Toolbox opens normally, then load Standalone ShadowMount once. It starts immediately, so you must handle that loading order yourself. Do not load another ShadowMount copy or a separate kstuff. The website handles its own loading order automatically.
+Exact profiles: **11.00, 11.20, 11.60, 12.00, 12.02, 12.20, 12.40, 12.60, 12.70, 13.00, 13.20, 13.40, 13.42 and 13.60**. Below 11.00 and 11.40 are not supported.
 
-## What changed for 13.60
+Use a compatible jailbreak/ELF loader and load the full payload once after a fresh boot/jailbreak. Do not stack it over an existing etaHEN instance or load a second kstuff. The binary retains the tested configuration path `/data/etaHEN/config-multifw-experimental.ini` and diagnostic identity `ex-diag-20261005.unified-dev8`.
 
-- r3 repairs cheat module lookup, initializes JSON addressing, and makes explicit cheat downloads refresh local indexes. A manually copied GTA V JSON cheat passed enable/gameplay/disable checks through etaHEN on 13.60. See [r3 release notes](RELEASE-NOTES-r3.md).
+The owner confirmed working PS4 FPS in Minecraft, PS5 FPS in GTA V/WWE/Spider-Man, Toolbox placement/opening, plugin lifecycle and current build stability on 13.60. Earlier community startup confirmations exist for 11.20, 12.40 and 13.40. These are scoped observations, not verification of every feature on every firmware. All 21 local checks and the complete build passed.
 
-- r2 fixes optional payloads starting before Toolbox initialization by replacing the persistent-log readiness check with a boot-local acknowledgement tied to the current etaHEN and ShellUI processes. Failed Toolbox initialization stops the optional sequence.
-- r2 keeps bundled kstuff-lite active and removes incompatible legacy pause/resume controls. The matched ShadowMount build applies the same protection. The user confirmed Toolbox works and the previous shutdown, restart and rest-mode-entry freezes are resolved on their 13.60 console.
-- Updated the runtime, injector and managed/native hooks for 13.60. Native hooks use process-private copy-on-write publication to avoid altering another process's shared code pages.
-- Added an **etaHEN Toolbox home-screen card**, automatically installed by the main ELF and restored if deleted. It opens the working legacy Settings route; the normal Sony Debug Settings menu remains available.
-- Added **Start PS5Debug-NG** under Services, with duplicate-load protection. The bundled input is PS5Debug-NG 1.3.2. It starts on demand rather than automatically.
-- Removed the Homebrew Store and PS5 webMAN Games buttons from the Toolbox main menu.
-- Fixed URL-loaded payloads incorrectly detecting themselves as an old running etaHEN instance.
-- Added Node/Zig build scripts, ELF checks, ABI and embedding regression tests, and component diagnostics.
+## Plugins and FPS
 
-## Use and validation
+- System `.plugin` containers: `/data/etaHEN/plugins/` (or the supported USB etaHEN plugin folder).
+- Game `.plugin`, `.prx`, `.sprx`: `/data/etaHEN/game_plugins/<TITLEID>/`.
+- Start can arm game plugins before their game opens. Auto-start is optional.
+- A PRX must match its game/platform/version and available imports. Third-party PRX compatibility is not hardware-validated; GoldHEN-specific APIs are not emulated. Stop disarms future loads; close the game to unload a resident module.
+- Enable the FPS overlay in Toolbox. PS4 measurements count GNM flip submissions; PS5 sampling follows OnionHEN's render/scanout estimation. Game rendering behavior can affect measurements.
 
-This development line targets the exact **11.00–13.60** profiles in `firmware-profiles.json` (11.40 remains excluded) and requires a compatible jailbreak and ELF loader. The integrated host is [sniperscheats.lol](https://sniperscheats.lol/). Load one full payload after a fresh boot/jailbreak; do not stack it over an existing etaHEN instance.
+## Source, builds and rollback
 
-The user confirmed the corrected website flow, fresh startup, automatic card installation, Toolbox navigation and PS5Debug Services action. FTP, service startup and guarded hook installation also have scoped hardware checks. This does **not** certify every original etaHEN feature or other firmware. The [validation record](PORT-STATUS.md) distinguishes successful checks from earlier diagnostic failures; referenced raw console artifacts are intentionally not published.
+The exact tested ELF is released unchanged. Its SHA-256 is `46c161473b27d12f1fa5e2d1d10466ce587db841ed9e8d71a219424d8fcf637f`. See the attached manifest, source archive and checksums. Development fixture sources remain for reproducibility; the GTA limiter test plugin is not a release asset.
 
-The r3 main ELF is published as `etaHEN-13.60.elf` (30,410,624 bytes), SHA-256:
+[BUILDING.md](BUILDING.md) documents Node, Zig, PS5 payload SDK v0.43 and external inputs. [BUILD-INPUTS.json](BUILD-INPUTS.json) records dependency hashes. SDKs, upstream binaries and static archives are obtained separately. Earlier [13.60 r3](https://github.com/GronedWaffel/etahen-11.00-13.60/releases/tag/v2.5B-13.60-r3) and experimental releases remain available for rollback.
 
-```
-aa166a43347d10a31f7efa5ca26ec32f512c65e8910466bfc8033537337b87b2
-```
-
-Card installation uses the newer firmware's application registration scan, which may also register other already-staged application folders. An ownership receipt and asset comparison skip repeat registration when the card is current. See [Toolbox card details](TOOLBOX-CARD.md).
-
-## Build and contribute
-
-See [BUILDING.md](BUILDING.md) for Node.js 24, Zig 0.14.1, PS5 payload SDK v0.43 and external build inputs. This repository contains project source; SDKs, third-party static archives and bundled upstream payload binaries must be obtained separately. Their tested hashes are recorded in [BUILD-INPUTS.json](BUILD-INPUTS.json).
-
-**Pull requests and community testing are welcome.** Improvements, clear bug reports, reproducible builds and separately verified firmware ports all help. Include exact firmware, tools and observed results; please retain upstream authorship and licensing.
-
-Companion desktop project: [PS Neighborhood](https://github.com/GronedWaffel/ps-neighborhood), with PS5 memory/MCP tools, FTP, package installation, console management and saves.
+Companion project: [PS Neighborhood](https://github.com/GronedWaffel/ps-neighborhood).
 
 ## License and credit
 
-etaHEN's [GPLv3 license](LICENSE) is retained. Third-party components keep their own licenses. See [CREDITS.md](CREDITS.md) and the original in-file notices for attribution. This project is not affiliated with Sony Interactive Entertainment or presented as an official etaHEN release.
+The original [GPLv3 LICENSE](LICENSE) is retained; third-party components retain their own notices. FPS integration credits OnionHEN/LightningMods, PHU Games Tools / ArkSama, and the PS5-Payload-dev foundation. See [CREDITS.md](CREDITS.md) for full attribution. This project is not affiliated with Sony Interactive Entertainment.

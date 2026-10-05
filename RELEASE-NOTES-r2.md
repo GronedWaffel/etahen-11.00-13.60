@@ -1,6 +1,6 @@
 # etaHEN 13.60 r2 + matched ShadowMountPlus
 
-**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-13.60/releases/download/v2.5B-13.60-r2/etaHEN-13.60_Standalone-ShadowMount.elf).** It is our custom ShadowMount build matched to the kstuff-lite bundled with this etaHEN. Load etaHEN first, wait until Toolbox opens normally, then load Standalone ShadowMount once.
+**Recommended for this etaHEN 13.60 r2 build: [Standalone ShadowMount (manual loading)](https://github.com/GronedWaffel/etahen-11.00-13.60/releases/download/v2.5B-13.60-r2/etaHEN-13.60_Standalone-ShadowMount.elf).** It is our custom ShadowMount build matched to the kstuff-lite bundled with this etaHEN. Load etaHEN first, wait until Toolbox opens normally, then load Standalone ShadowMount once.
 
 ## Fixed in this update
 
@@ -21,6 +21,6 @@ The website already uses the matched builds and guarded loading order. Let its o
 
 Updated etaHEN source is in this repository. `etahen-shadowmount-13.60-r2-source.zip` includes the modified etaHEN and ShadowMount sources, supervisor, build scripts, regression tests and original license notices. Upstream dependency source archives, scoped validation metadata and `SHA256SUMS.txt` are also attached. Pull requests, reproducible bug reports and community testing are welcome.
 
-Original **etaHEN by LightningMods and the etaHEN contributors**. **ShadowMountPlus by Drakmor**, with upstream credits to VoidWhisper, Gezine, Earthonion, EchoStretch and community contributors. **kstuff-lite by EchoStretch and upstream kstuff contributors**, including sleirsgoevy. SDK/ELF loader work by John Törnblom and contributors; PS5Debug-NG by Pharaoh2k/OSR and contributors, building on CTN and SiSTR0. Full attribution is in [CREDITS.md](https://github.com/GronedWaffel/etahen-13.60/blob/main/CREDITS.md) and the retained upstream notices.
+Original **etaHEN by LightningMods and the etaHEN contributors**. **ShadowMountPlus by Drakmor**, with upstream credits to VoidWhisper, Gezine, Earthonion, EchoStretch and community contributors. **kstuff-lite by EchoStretch and upstream kstuff contributors**, including sleirsgoevy. SDK/ELF loader work by John Törnblom and contributors; PS5Debug-NG by Pharaoh2k/OSR and contributors, building on CTN and SiSTR0. Full attribution is in [CREDITS.md](https://github.com/GronedWaffel/etahen-11.00-13.60/blob/main/CREDITS.md) and the retained upstream notices.
 
 These are **unofficial integration builds maintained by GronedWaffel, for PS5 13.60 only**. Original authors retain their credits and licenses.

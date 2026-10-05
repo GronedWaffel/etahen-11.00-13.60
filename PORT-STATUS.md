@@ -1,4 +1,11 @@
-# Unofficial etaHEN 13.60 port — development status
+# Unofficial etaHEN unified port — validation record
+
+## Unified r1 (2026-10-05)
+
+The owner approved public release after confirming PS4 FPS now works and the current build is stable on 13.60. Prior checks confirmed PS5 FPS in GTA V, WWE and Spider-Man, working Toolbox placement/opening, and `.plugin` lifecycle/game detection. The controller-input startup correction was confirmed on 13.60 and by a community tester on 12.40. Earlier startup confirmations exist for 11.20 and 13.40. This does not certify every final-build feature on all profiles.
+
+The release uses the exact dev8 ELF, diagnostic `ex-diag-20261005.unified-dev8`, SHA-256 `46c161473b27d12f1fa5e2d1d10466ce587db841ed9e8d71a219424d8fcf637f`. All 21 host checks and full compilation passed. The GTA 15 FPS experiment did not work; its fixture is not released and is not claimed as a feature. No real third-party PRX has been tested. See [release notes](RELEASE-NOTES-unified-r1.md) for usage and support limits. The following entries are historical investigation records.
+
 
 ## Cheat repair r3 (2026-10-01)
 
@@ -41,7 +48,7 @@ certification; the specific successful checks above are the validation record.
 
 ## URL-loader self-detection fix
 
-The website successfully completed the jailbreak and reached etaHEN, but the bootstrap reported an existing instance even on a fresh boot. Unlike raw TCP loading (`payload.elf`), URL loading names the process after its filename (`etaHEN-13.60-….elf`). The bootstrap's substring lookup matched itself. The shared bootstrap process lookup now excludes its own PID while retaining matches for other etaHEN services/bootstraps. This also prevents the later legacy cleanup loop from targeting the bootstrap itself. The restart guard is retained and logs any matching **other** PID.
+The website successfully completed the jailbreak and reached etaHEN, but the bootstrap reported an existing instance even on a fresh boot. Unlike raw TCP loading (`payload.elf`), URL loading names the process after its filename (`etaHEN-13.60-â€¦.elf`). The bootstrap's substring lookup matched itself. The shared bootstrap process lookup now excludes its own PID while retaining matches for other etaHEN services/bootstraps. This also prevents the later legacy cleanup loop from targeting the bootstrap itself. The restart guard is retained and logs any matching **other** PID.
 
 Regression checks cover self-named URL payloads, actual separate etaHEN processes, unrelated loader names and bounded/truncated process names. All nine local tests passed. Rebuilt ELF: 30,415,336 bytes, SHA-256 `2d43efc4111991772bfc4d331ebfd6a88395efa686da3114ba8406323b281fbe`. On 2026-09-29 the user tested the corrected website flow after restarting and confirmed it works. This closes the URL-launch startup check; it does not certify every etaHEN feature.
 
