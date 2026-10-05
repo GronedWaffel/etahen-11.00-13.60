@@ -1,4 +1,5 @@
-﻿/* Copyright (C) 2025 etaHEN / LightningMods
+#include "../../include/port_game_plugin.hpp"
+/* Copyright (C) 2025 etaHEN / LightningMods
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -1034,125 +1035,88 @@ void generate_custom_pkg_xml(std::string& xml_buffer)
 
     xml_buffer += "</setting_list>\n</system_settings>";
 }
-void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml)
-{
-  struct dirent *entry;
-  int toggle_switch_id = 1;
+static std::string plugin_xml_escape(const std::string &text) {
+  std::string out;
+  for (unsigned char c : text) {
+    if (c == '&') out += "&amp;";
+    else if (c == '<') out += "&lt;";
+    else if (c == '>') out += "&gt;";
+    else if (c == '"') out += "&quot;";
+    else if (c == '\'') out += "&apos;";
+    else if (c >= 32 || c == '\t') out += c;
+  }
+  return out;
+}
 
-  std::vector<std::string> directories = {
-      "/user/data/etaHEN/plugins",
-      "/usb0/etaHEN/plugins",
-      "/usb1/etaHEN/plugins",
-      "/usb2/etaHEN/plugins",
-      "/usb3/etaHEN/plugins",
-
-      "/user/data/etaHEN/payloads",
-      "/usb0/etaHEN/payloads",
-      "/usb1/etaHEN/payloads",
-      "/usb2/etaHEN/payloads",
-      "/usb3/etaHEN/payloads"
-    };
-
-  xml_buffer = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
-               "<system_settings version=\"1.0\" plugin=\"debug_settings_plugin\">\n"
-               "\n";
-
-  if (plugins_xml)
-    xml_buffer += "<setting_list id=\"id_plugin\" title=\"Plugins\">\n";
-  else
-    xml_buffer += "<setting_list id=\"id_auto_plugins\" title=\"★ Plugins - Startup Menu\">\n";
-
-  for (const auto &directory : directories)
-  {
+void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml) {
+  auto &list = plugins_xml ? plugins_list : auto_list;
+  list.clear();
+  std::vector<std::string> directories;
+  for (const auto &base : {std::string("/user/data"), std::string("/usb0"), std::string("/usb1"), std::string("/usb2"), std::string("/usb3")})
+    for (const auto &name : {"etaHEN", "etahen"})
+      for (const auto &kind : {"plugins", "payloads"})
+        directories.push_back(base + "/" + name + "/" + kind);
+  xml_buffer = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<system_settings version=\"1.0\" plugin=\"debug_settings_plugin\">\n";
+  xml_buffer += plugins_xml ? "<setting_list id=\"id_plugin\" title=\"System and Game Plugins\">\n" : "<setting_list id=\"id_auto_plugins\" title=\"Plugin Startup\">\n";
+  for (const auto &directory : directories) {
     DIR *dir = opendir(directory.c_str());
-    // Open the directory
-    if (!dir)
-    {
-      shellui_log("Failed to open directory: %s", directory.c_str());
-      continue;
-    }
-    // Iterate over each file in the directory
-    while ((entry = readdir(dir)) != nullptr)
-    {
-      bool is_elf = strstr(entry->d_name, ".elf") != NULL;
-      if ((strstr(entry->d_name, ".plugin") || is_elf) && strstr(entry->d_name, ".auto_start") == NULL)
-      {
-        Plugins new_list;
-        // Store the ID in the plugin_ids array
-        CustomPluginHeader header = {};
-        std::string toggle_switch;
-        std::string id;
-        std::string path = directory + "/" + entry->d_name;
-
-        shellui_log("Found Plugin: %s", path.c_str());
-
-        int fd = open(path.c_str(), O_RDONLY, 0);
-        if (fd < 0)
-        {
-          shellui_log("Failed to open Plugin file");
-          continue;
-        }
-
-        if (read(fd, (void *)&header, sizeof(CustomPluginHeader)) != sizeof(CustomPluginHeader))
-        {
-          shellui_log("Failed to read Plugin file, %s", path.c_str());
-          close(fd);
-          continue;
-        }
-
-        close(fd);
-
-        if (!is_elf && !is_valid_plugin(header))
-        {
-          shellui_log("Invalid plugin file.");
-          continue;
-        }
-        else if(is_elf){
-          strncpy(header.prefix, "<elf>", 5);
-          strncpy(header.plugin_version, "", 4);
-        }
-        shellui_log("Valid plugin file.");
-
-        std::string shown_path = path; // Initialize with the original path
-        //path before any edits for shellui
-        new_list.shellui_path = path;
-
-        const std::string prefix = "/user";
-        if (path.find(prefix) == 0) { // Check if the path starts with "/user"
-           shown_path = path.substr(prefix.length()); // Remove "/user"
-        }
-
-        shown_path = (path.substr(0, 4) == "/usb") ? "/mnt" + path : shown_path;
-
-	      std::string version_str = !is_elf ? "(v" + std::string(header.plugin_version) + ")" : "";
-
-        id = plugins_xml ? "id_plugin_" + std::to_string(toggle_switch_id++) : "id_auto_plugin_" + std::to_string(toggle_switch_id++);
-        if (plugins_xml)
-          toggle_switch = "<toggle_switch id=\"" + id + "\" title=\"" + entry->d_name + " " + version_str + "\" second_title=\"Start/Stop " + entry->d_name + " (Path: " + shown_path + ") (" + (is_elf ? entry->d_name : header.titleID) + ")\" value=\"0\"/>\n";
-        else
-          toggle_switch = "<toggle_switch id=\"" + id + "\" title=\"" + entry->d_name + " " + version_str + "\" second_title=\"Enable/Disable auto start for " + entry->d_name + "  (" + shown_path + ")\" value=\"0\"/>\n";
-
-        xml_buffer += toggle_switch;
-        new_list.tid = (is_elf ? entry->d_name : header.titleID);
-        new_list.path = shown_path;
-        new_list.name = entry->d_name;
-        new_list.version = header.plugin_version;
-        new_list.id = id;
-        plugins_xml ? plugins_list.push_back(new_list) : auto_list.push_back(new_list);
-      }
+    if (!dir) continue;
+    struct dirent *entry;
+    while ((entry = readdir(dir))) {
+      if (!port_plugin_suffix(entry->d_name, ".elf") && !port_plugin_suffix(entry->d_name, ".plugin")) continue;
+      const std::string path = directory + "/" + entry->d_name;
+      int fd = open(path.c_str(), O_RDONLY);
+      if (fd < 0) continue;
+      unsigned char prefix[128];
+      struct stat st = {};
+      bool regular = fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size >= 64;
+      ssize_t size = regular ? read(fd, prefix, sizeof(prefix)) : -1;
+      close(fd);
+      PortPlugin info;
+      if (size < 0 || !port_plugin_parse(path.c_str(), prefix, (size_t)size, (size_t)st.st_size, &info)) continue;
+      bool duplicate = false;
+      for (const auto &old : list) if (old.tid == info.identity) duplicate = true;
+      if (duplicate) continue;
+      Plugins item;
+      item.shellui_path = path;
+      item.path = path.find("/user/data/") == 0 ? path.substr(5) : "/mnt" + path;
+      item.tid = info.identity;
+      item.name = entry->d_name;
+      item.version = info.version;
+      item.id = std::string(plugins_xml ? "id_plugin_" : "id_auto_plugin_") + std::to_string(list.size()+1);
+      const std::string title = item.name + (item.version.empty() ? "" : " (v" + item.version + ")");
+      xml_buffer += "<toggle_switch id=\"" + item.id + "\" title=\"" + plugin_xml_escape(title) + "\" second_title=\"" + plugin_xml_escape(item.path) + "\" value=\"0\"/>\n";
+      list.push_back(item);
     }
     closedir(dir);
   }
-
-  if (plugins_xml)
-  {
-    xml_buffer += "<link id=\"id_auto_plugins\" title=\"★ Plugins - Startup Menu\" file=\"auto_plugins.xml\" second_title=\"Configure plugins to launch when you load etaHEN\"/>\n";
-    xml_buffer += "</setting_list>\n</setting_list>\n</system_settings> ";
+  const std::string game_root="/user/data/etaHEN/game_plugins";
+  DIR *games=opendir(game_root.c_str());
+  if(games){
+    dirent *game;
+    while((game=readdir(games))){
+      std::string title=game->d_name;
+      if(!port_game_title(title))continue;
+      std::string folder=game_root+"/"+title;
+      DIR *files=opendir(folder.c_str());if(!files)continue;
+      dirent *file;
+      while((file=readdir(files))){
+        std::string path="/data/etaHEN/game_plugins/"+title+"/"+file->d_name;
+        if(!port_game_plugin_path(path,nullptr))continue;
+        Plugins item;item.game=true;item.path=path;item.shellui_path="/user"+path;
+        item.name=file->d_name;item.tid=title;
+        item.id=std::string(plugins_xml?"id_plugin_game_":"id_auto_plugin_game_")+std::to_string(list.size()+1);
+        std::string tag=plugins_xml?"button":"toggle_switch";
+        xml_buffer+="<"+tag+" id=\""+item.id+"\" title=\""+plugin_xml_escape(title+" - "+item.name)+"\" second_title=\""+(plugins_xml?"Load into this running game. Close the game to unload.":"Load when this game starts.")+"\""+(plugins_xml?"":" value=\"0\"")+"/>\n";
+        list.push_back(item);
+      }
+      closedir(files);
+    }
+    closedir(games);
   }
-  else
-  {
-    xml_buffer += "</setting_list>\n</system_settings> ";
-  }
+  if (list.empty()) xml_buffer += "<label id=\"id_no_system_plugins\" title=\"No plugins found\" second_title=\"Copy .elf or .plugin files to /data/etaHEN/plugins\"/>\n";
+  if (plugins_xml) xml_buffer += "<link id=\"id_auto_plugins\" title=\"Plugin Startup\" file=\"auto_plugins.xml\" second_title=\"Choose plugins to launch with etaHEN\"/>\n";
+  xml_buffer += "</setting_list>\n</system_settings>\n";
 }
 
 bool SetVersionString(const char *str)

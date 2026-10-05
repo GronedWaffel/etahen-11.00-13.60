@@ -14,6 +14,18 @@
 
 #include <dlfcn.h>
 extern int port_service_publication(int pid);
+extern int port_game_publication(int pid);
+
+// Game plugins do not publish ShellUI hooks or overwrite its observer target.
+bool Inject_GamePlugin(int pid, uint8_t *elf) {
+    if (pid <= 1 || !elf) return false;
+    struct proc *target = get_proc_by_pid(pid);
+    if (!target) return false;
+    bool ok = inject_elf(target, elf);
+    if(ok && port_game_publication(pid))ok=false;
+    free(target);
+    return ok;
+}
 
 bool Inject_Toolbox(int pid, uint8_t * elf)
 {                                  

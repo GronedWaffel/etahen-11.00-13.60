@@ -81,8 +81,10 @@ static int MainDaemonSocket = -1;
 static int UtilDaemonSocket = -1;
 class IPC_Client {
 private:
+  explicit IPC_Client(bool utility) : util_daemon(utility) {}
+  std::mutex command_mutex;
 public:
-  bool util_daemon = false;
+  const bool util_daemon;
 
   // Socket Management
   int OpenConnection(const char *path) {
@@ -194,6 +196,7 @@ public:
 
   bool IPCSendCommand(DaemonCommands cmd, std::string &ipc_msg1,
                       std::string ipc_msg2 = "") {
+    std::lock_guard<std::mutex> transaction(command_mutex);
 
     int ret = -1;
     std::string json;
@@ -261,10 +264,8 @@ public:
 
   // Static method to access the instance
   static IPC_Client &getInstance(bool is_util_daemon) {
-    static IPC_Client
-        instance; // Lazy-loaded instance, guaranteed to be destroyed
-    instance.util_daemon = is_util_daemon;
-    return instance;
+    static IPC_Client main(false), utility(true);
+    return is_util_daemon ? utility : main;
   }
 
   int GetDaemonPid() {
@@ -348,14 +349,18 @@ public:
     return IPC_Ret::NO_ERROR;
   }
 
+  bool LaunchGamePlugin(const std::string &path) {
+    if (util_daemon) return false;
+    std::string response;
+    return IPCSendCommand(BREW_LOAD_GAME_PLUGIN,response,nlohmann::json({{"plugin_path",path}}).dump());
+  }
   IPC_Ret LaunchPlugin(std::string plugin_path, std::string tid) {
     if (!util_daemon) {
       shellui_log("This IPC command is NOT in the main daemon");
       return IPC_Ret::INVALID;
     }
     std::string ipc_msg;
-    std::string json = "{\"plugin_path\": \"" + plugin_path +
-                       "\", \"title_id\": \"" + tid + "\"}";
+    std::string json = nlohmann::json({{"plugin_path",plugin_path},{"title_id",tid}}).dump();
     if (!IPCSendCommand(BREW_UTIL_LAUNCH_PLUGIN, ipc_msg, json)) {
       shellui_log("Failed to launch plugin");
       return IPC_Ret::OPERATION_FAILED;

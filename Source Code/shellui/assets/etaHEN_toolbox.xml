@@ -34,7 +34,7 @@
              <list_item id="id_overlay_pos_3" title="Bottom Left" value="2"/>
              <list_item id="id_overlay_pos_4" title="Bottom Right" value="3"/>
            </list>
-           <toggle_switch id="id_overlay_fps" title="*Experimental* PS4 FPS Section" description="Toggle the FPS Section from the game overlay NOTE: not for regular use yet" value="0"/> 
+           <toggle_switch id="id_overlay_fps" title="Game FPS (PS4 / PS5)" description="Show game FPS. Unsupported or unavailable readings display --. Enable before starting a PS4 game." value="0"/>
            <toggle_switch id="id_overlay_gpu" title="GPU Section" description="Toggle the GPU Section from the game overlay" value="0"/>
            <toggle_switch id="id_overlay_cpu" title="CPU Section" description="Toggle the CPU Section from the game overlay" value="0"/>
            <toggle_switch id="id_all_cpu_usage" title="Show ALL CPU Core Usage" description="Toggle the advanced CPU usage from the game overlay" value="0"/>

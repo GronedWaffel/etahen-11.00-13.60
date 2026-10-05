@@ -1,3 +1,5 @@
+#include "../../include/port_plugin_runtime.h"
+#include "private-1240-p5.h"
 #include "port_kstuff.hpp"
 #include "port_toolbox_route.hpp"
 /* Copyright (C) 2025 etaHEN / LightningMods
@@ -1011,6 +1013,12 @@ void* load_plugin_thread(void* args) {
     Plugins *plugin = (Plugins*)args;
 
     notify("Loading Plugin %s ...", plugin->path.c_str());
+    if (plugin->game) {
+        bool ok=IPC_Client::getInstance(false).LaunchGamePlugin(plugin->path);
+        notify(ok ? "Game plugin dispatched: %s" : "Game plugin not loaded: %s. Check the running title and log; restart the game before retrying.",plugin->name.c_str());
+        delete plugin;
+        return nullptr;
+    }
     IPC_Client& util_ipc = IPC_Client::getInstance(true);
     if (util_ipc.LaunchPlugin(plugin->path, plugin->tid) != IPC_Ret::NO_ERROR) {
         notify("Failed to launch plugin %s (%s)", plugin->path.c_str(), plugin->tid.c_str());
@@ -1148,7 +1156,7 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
 
     // Check if id is in the excluded list
     bool isExcludedId = std::find(excludedIds.begin(), excludedIds.end(), id) != excludedIds.end();
-    if (value.empty() && !isExcludedId && !is_game && !is_cust_pkg) {
+    if (value.empty() && !isExcludedId && !is_game && !is_cust_pkg && id.rfind("id_plugin_game_",0)!=0) {
 #if SHELL_DEBUG==1
         shellui_log("[LM HOOK] OnPress_Hook: Id: %s has no value set", id.c_str());
 #endif
@@ -1384,38 +1392,16 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             {
                 if (plugin.id == id)
                 {
-                    int pid = -1;
-                    if(plugin.tid.rfind(".elf") != std::string::npos && (pid = sceSystemServiceGetAppId(plugin.tid.c_str())) > 0){
-                        IPC_Client::getInstance(false).ForceKillPID(pid);
-                        notify("killed payload %s", plugin.tid.c_str());
+                    if (plugin.game) {
+                        pthread_t worker;
+                        auto info=new Plugins(plugin);
+                        if(pthread_create(&worker,nullptr,load_plugin_thread,info)==0)pthread_detach(worker);
+                        else {delete info;notify("Could not start game plugin loader");}
                         break;
                     }
-                    char pbuf[256];
+                    char pbuf[96];
                     snprintf(pbuf, sizeof(pbuf), "/system_tmp/%s.PID", plugin.tid.c_str());
-
-                    int f = open(pbuf, O_RDONLY);
-                    if (f >= 0)
-                    {
-                        char t[32];
-                        int r = read(f, t, sizeof(t) - 1);
-                        close(f);
-                        if (r > 0)
-                        {
-                            t[r] = 0;
-                            pid = atoi(t);
-                        }
-                    }
-
-                    if (pid > 0)
-                    {
-                        char name[32];
-                        if (sceKernelGetProcessName(pid, name) < 0)
-                        {
-                            shellui_log("Stale plugin PID file detected for %s, removing", plugin.tid.c_str());
-                            unlink(pbuf);
-                            pid = -1;
-                        }
-                    }
+                    int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
 
                     if (pid > 0 && atol(value.c_str()) == 0)
                     {
@@ -1435,7 +1421,9 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
                         pthread_t thr;
                         shellui_log("Plugin %s not running", plugin.tid.c_str());
                         auto plugin_info = new Plugins(plugin);
-                        pthread_create(&thr, nullptr, load_plugin_thread, (void *)plugin_info);
+                        if (pthread_create(&thr, nullptr, load_plugin_thread, (void *)plugin_info) == 0)
+                            pthread_detach(thr);
+                        else { delete plugin_info; notify("Could not start plugin loader"); }
                     }
                 }
             }
@@ -1997,7 +1985,8 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             }
         
             for (auto plugin : plugins_list) {
-                int pid = sceSystemServiceGetAppId(plugin.tid.c_str());
+                if(plugin.game)continue; // Game plugins end with their game, never kill the game for Lite Mode.
+                int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
                 if (pid > 0) {
                     shellui_log("killing pid: 0x%X", pid);
                     IPC_Client::getInstance(false).ForceKillPID(pid);
@@ -2093,6 +2082,7 @@ MonoObject* MemoryStream_Instance = nullptr;
 uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString* FileName) {
     
     std::string new_xml_string;
+    P5Count(P5Resources);
     std::string resourceName = Mono_to_String(FileName);
 
 #if SHELL_DEBUG==1 
@@ -2149,6 +2139,7 @@ uint64_t GetManifestResourceStream_Hook(uint64_t inst, MonoString* FileName) {
     }
 
     if (is_debug_settings) {
+        P5Count(P5ToolboxResources);P5Event("Toolbox resource requested");
         LoadSettings();
         new_xml_string = global_conf.lite_mode ? dec_list_xml_str : dec_xml_str;
        // shellui_log("Lite mode is %s", global_conf.lite_mode ? "enabled" : "disabled");
@@ -2323,8 +2314,8 @@ int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element) {
 
     if (!plugins_list.empty()) {
         for (auto plugin : plugins_list) {
-            if (plugin.id == id) {
-                s_MonoText = mono_string_new(Root_Domain, (sceSystemServiceGetAppId(plugin.tid.c_str()) > 0) ? "1" : "0");
+            if (plugin.id == id && !plugin.game) {
+                s_MonoText = mono_string_new(Root_Domain, (port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName) > 0) ? "1" : "0");
             }
         }
     }
@@ -2558,9 +2549,10 @@ bool handle_uri_boot_common(MonoString* uri, int opt) {
   template<typename Argument> bool port_boot_dispatch(MonoString* uri, int opt, Argument titleIdForBootAction, bool (*original)(MonoString*,int,Argument)) {
 #ifdef ETAHEN_PORT_1360
     if(uri&&port_toolbox_root_requested(Mono_to_String(uri).c_str())){
+      P5Count(P5RootRequests);P5Event("dashboard Toolbox route entered");
       cheats_shortcut_activated=cheats_shortcut_activated_not_open=false;
       game_shortcut_activated=game_shortcut_activated_media=false;
-      return original(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt,titleIdForBootAction);
+      bool accepted=original(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt,titleIdForBootAction);P5Count(P5RootReturns);if(!accepted)P5Count(P5RootFailures);P5Event("dashboard Toolbox route returned",accepted);return accepted;
     }
 #endif
     if(handle_uri_boot_common(uri, opt)) {
@@ -2586,9 +2578,10 @@ bool uri_boot_hook_string(MonoString* uri,int opt,MonoString* arg){return port_b
   bool uri_boot_hook_2(MonoString* uri, int opt) {
 #ifdef ETAHEN_PORT_1360
     if(uri&&port_toolbox_root_requested(Mono_to_String(uri).c_str())){
+      P5Count(P5RootRequests);P5Event("dashboard Toolbox route entered");
       cheats_shortcut_activated=cheats_shortcut_activated_not_open=false;
       game_shortcut_activated=game_shortcut_activated_media=false;
-      return boot_orig_2(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt);
+      bool accepted=boot_orig_2(mono_string_new(Root_Domain,ETAHEN_TOOLBOX_URI),opt);P5Count(P5RootReturns);if(!accepted)P5Count(P5RootFailures);P5Event("dashboard Toolbox route returned",accepted);return accepted;
     }
 #endif
   #if SHELL_DEBUG==1
@@ -2851,6 +2844,7 @@ bool uri_boot_hook_string(MonoString* uri,int opt,MonoString* arg){return port_b
       }
   
       if (toolbox_sc_activated) {
+        P5Count(P5Shortcuts);P5Event("configured Toolbox shortcut activated");
 #if SHELL_DEBUG == 1
         shellui_log("Toolbox Shortcut Activated");
 #endif

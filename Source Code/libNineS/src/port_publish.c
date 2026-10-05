@@ -1,3 +1,7 @@
+#include "private-1240-p5.h"
+#ifndef PORT_PUBLICATION_TEST
+#include <fcntl.h>
+#endif
 // SPDX-License-Identifier: GPL-3.0-or-later
 #ifdef PORT_PUBLICATION_TEST
 #include "publication-mocks.h"
@@ -84,10 +88,21 @@ static int apply_stopped(int pid,const PortPublishRequest* request,intptr_t requ
  }
  return -1;
 }
-int port_service_publication(int pid){
+static int observe_publication(int pid,int shellui){
  // The result integer is at args+0x300; the private handshake is at +0x3400.
  intptr_t address=injector_result_address+PORT_PUBLISH_OFFSET-0x300;
  char previous[192]={0};
+
+#ifndef PORT_PUBLICATION_TEST
+ if(shellui){
+ P5Target target={P5_MAGIC,pid,0,injector_result_address+P5_OFFSET-0x300};
+ int targetfd=open(P5_TARGET_PATH ".tmp",O_WRONLY|O_CREAT|O_TRUNC|O_NOFOLLOW,0600);
+ if(targetfd>=0){int ok=write(targetfd,&target,sizeof target)==sizeof target;close(targetfd);
+  if(ok)ok=rename(P5_TARGET_PATH ".tmp",P5_TARGET_PATH)==0;
+  port_stage("publisher",ok?"p5 target published":"p5 target publication failed");}
+ else port_stage("publisher","p5 target file open failed");
+ }
+#endif
  port_stage("publisher","observing injected initializer");
  for(int tick=0;tick<150;tick++){
   PortPublishRequest request={0};int result=-1234567;
@@ -96,7 +111,7 @@ int port_service_publication(int pid){
   // This stays in the injector process, outside ShellUI's filesystem sandbox.
   char stage[192]={0};
   if(!pt_copyout(pid,injector_result_address+0x100,stage,sizeof(stage)-1)&&stage[0]&&strcmp(stage,previous)){
-   port_stage("shellui-observed",stage);memcpy(previous,stage,sizeof(stage));
+   port_stage(shellui?"shellui-observed":"game-observed",stage);memcpy(previous,stage,sizeof(stage));
   }
   if(result!=-1234567){port_diag("initializer-returned",pid,result,0);port_diag_flush();return 0;}
   if(pt_copyout(pid,address,&request,sizeof(request)))return -1;
@@ -114,3 +129,6 @@ int port_service_publication(int pid){
  port_diag("initializer-observer-timeout",pid,150,0);port_diag_flush();
  puts("Payload initialization did not finish within the observation window");return 0;
 }
+
+int port_service_publication(int pid){return observe_publication(pid,1);}
+int port_game_publication(int pid){return observe_publication(pid,0);}

@@ -1,11 +1,13 @@
+#include "private-1240-p5.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <ps5/payload.h>
 #include <stdio.h>
 #include <string.h>
 static bool enabled=false;
-void PortStartStatus(){enabled=true;}
+void PortStartStatus(){P5Init();enabled=true;}
 void PortStopStatus(){enabled=false;}
 void PortStatus(const char* text){
+ P5Event(text);
  if(!enabled)return;
  char escaped[2048];size_t used=0;
  for(;*text&&used+3<sizeof(escaped);++text){

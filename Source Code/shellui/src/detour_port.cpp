@@ -1,3 +1,4 @@
+#include "private-1240-p5.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "detour_port.h"
 #include "relocate.h"
@@ -15,6 +16,10 @@
 // addresses above 4 GiB. The initialized CRT gateway returns a full register.
 extern "C" long __crt_syscall(long,...);
 namespace {
+template<class F> auto p5zero(const char* label,F call)->decltype(call()){
+ P5Event(label);auto result=call();P5Event(label,(uint64_t)result,result?errno:0);return result;
+}
+
 constexpr size_t page=0x4000;
 struct Hook {uint64_t address;unsigned char original[14],patch[14];void* trampoline;bool published;};
 Hook hooks[128];size_t count=0,transactionStart=0;bool active=false,failed=false;
@@ -43,18 +48,16 @@ bool publishExternal(bool restore){
  for(int tick=0;tick<150;tick++){uint32_t state=request->state;if(state==2)return true;if(state==3)return false;usleep(100000);}
  return false;
 }
-struct AllocationCredentials {
- uint64_t auth=0;unsigned char caps[16];bool saved=false;
- AllocationCredentials(){auth=kernel_get_ucred_authid(getpid());if(!auth||kernel_get_ucred_caps(getpid(),caps))return;saved=true;unsigned char full[16];memset(full,0xff,16);kernel_set_ucred_authid(getpid(),0x4800000000010003ULL);kernel_set_ucred_caps(getpid(),full);}
- ~AllocationCredentials(){if(saved){kernel_set_ucred_caps(getpid(),caps);kernel_set_ucred_authid(getpid(),auth);}}
-};
 bool reserveArena(){
  if(arena)return true;
- AllocationCredentials credentials;
+ // RW anonymous mmap and kernel_mprotect do not need a process auth swap.
+ // Keep the same allocation, zeroing and executable-protection operations.
+ P5Event("arena before mmap",arenaSize);
  void* p=(void*)__crt_syscall(SYS_mmap,0UL,arenaSize,(long)(PROT_READ|PROT_WRITE),(long)(MAP_PRIVATE|MAP_ANONYMOUS),-1L,0L);
+ P5Event("arena after mmap",(uintptr_t)p,p==MAP_FAILED?errno:0);
  if(p==MAP_FAILED)return false;
- memset(p,0,arenaSize);
- if(kernel_mprotect(getpid(),(intptr_t)p,arenaSize,PROT_READ|PROT_WRITE|PROT_EXEC)){
+ P5Event("arena before zero fill");memset(p,0,arenaSize);P5Event("arena after zero fill");
+ if(p5zero("arena executable protection",[&](){return kernel_mprotect(getpid(),(intptr_t)p,arenaSize,PROT_READ|PROT_WRITE|PROT_EXEC);})){
   __crt_syscall(SYS_munmap,p,arenaSize);return false;
  }
  arena=(unsigned char*)p;return true;
@@ -78,11 +81,12 @@ void EnablePortExternalPublication(){externalPublication=true;auto request=publi
 void FinishPortExternalPublication(){if(externalPublication)publicationRequest()->state=4;}
 bool PortDetoursReady(){return active&&!failed&&count>transactionStart;}
 bool CommitPortDetours(){
+ P5Event("commit entered",count);
  if(!active||failed){RollbackPortDetours();return false;}
  if(externalPublication){
   if(!publishExternal(false)){failed=true;active=false;return false;}
   for(size_t i=transactionStart;i<count;i++)hooks[i].published=selectedHook(i);
-  active=false;return true;
+  P5Event("external commit returned",count);active=false;return true;
  }
  for(size_t i=transactionStart;i<count;++i){unsigned char check[14];
   if(!PortReadCode(hooks[i].address,check,14)||memcmp(check,hooks[i].original,14)){RollbackPortDetours();return false;}

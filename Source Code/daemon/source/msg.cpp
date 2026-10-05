@@ -1,3 +1,4 @@
+extern "C" bool Inject_GamePlugin(int,unsigned char*);
 #include "port_kstuff.hpp"
 #include "port_config.hpp"
 #include "port_stage.hpp"
@@ -893,61 +894,16 @@ bool set_fan_threshold(int THRESHOLDTEMP) {
 
 
 bool cmd_enable_fps_new(int appid) {
- 
-    if(done_appid == appid){
-       // etaHEN_log("FPS already enabled for %x", appid);
-        return true;
-  	}
-    
-    etaHEN_log("Enabling fps for appid %d", appid);
-
-    sleep(5);
-
-#ifdef ETAHEN_PORT_1360
-    if(!port_kstuff_injection_ready()){
-        notify(true, "Unexpected kstuff table state. Restart before FPS injection.");
-        return false;
-    }
-#endif
-    SuspendApp(appid);
-#ifndef ETAHEN_PORT_1360
-    char buz[100] = { 0 };
-    if (sceKernelMprotect(&buz[0], 100, 0x7) == 0) {
-        if (pause_resume_kstuff()) {
-            etaHEN_log("Paused kstuff...");
-            touch_file("/system_tmp/kstuff_paused");
-        }
-    }
-#endif
-
-    int pid = get_game_pid();
-    if (pid < 0) {
-#ifndef ETAHEN_PORT_1360
-        pause_resume_kstuff();
-#endif
-        notify(true, "Failed to get game pid");
-        return false;
-    }
-
-    if (!Inject_Toolbox(pid, fps_elf_start)) {
-#ifndef ETAHEN_PORT_1360
-        pause_resume_kstuff();
-#endif
-        ForceKillProc(pid);
-        notify(true, "Failed to inject fps");
-        return false;
-    }
-
-#ifndef ETAHEN_PORT_1360
-    pause_resume_kstuff();
-#endif
-
-    sleep(1);
-    ResumeApp(pid);
-
-    done_appid = appid;
-
-    return true;
+    if(done_appid==appid)return true;
+    int pid=get_game_pid();
+    if(pid<=1)return false;
+    if(!port_kstuff_injection_ready())return false;
+    // One attempt per running app. A failed hook must not be installed twice.
+    done_appid=appid;
+    bool ok=Inject_GamePlugin(pid,fps_elf_start);
+    port_result("fps-bc","counter injection",ok?0:-1,ok?0:errno);
+    if(!ok)notify(true,"FPS counter could not initialize. Restart the game before retrying.");
+    return ok;
 }
 
 
@@ -1111,6 +1067,12 @@ void handleIPC(struct clientArgs *client, std::string &inputStr,
   }
 
   switch (command) {
+  case BREW_LOAD_GAME_PLUGIN: {
+    extern bool port_load_game_plugin(const std::string &);
+    const char *file=json_getPropertyValue(my_json,"plugin_path");
+    reply(sender_app, !file || !port_load_game_plugin(file));
+    break;
+  }
   case BREW_TEST_CONNECTION: {
     reply(sender_app, false, out_var);
     break;

@@ -1,0 +1,24 @@
+// Formula cases adapted from OnionHEN's test_fps_formula.cpp; stale/invalid
+// sample cases cover the shared record used by this etaHEN port.
+#include <onion/fps_formula.hpp>
+#include <onion/fps_validate.h>
+#include <assert.h>
+#include <limits>
+using namespace onion::fps;
+int main(){
+ assert(hz_from_delta(15,1)==15);assert(hz_from_delta(60,1)==60);
+ assert(hz_from_delta(1,0)==0);assert(hz_from_delta(0,1)==0);
+ assert(hz_from_delta(1,std::numeric_limits<double>::quiet_NaN())==0);
+ HybridIn in;assert(!compose(in).valid);
+ in.ring_ok=true;in.ring=30;in.global_ok=true;in.global=120;
+ assert(compose(in).fps==30); // Do not mistake the global submit counter for rendered frames.
+ in.scanout_ok=true;in.scanout=60;in.calibration_ready=true;in.multipass=true;
+ assert(compose(in).fps==60 && (compose(in).source&ONION_FPS_SRC_MULTIPASS));
+ in.ring=500;in.scanout_ok=false;assert(!compose(in).valid);
+ OnionFpsSample s{};s.magic=ONION_FPS_MAGIC;s.valid=1;s.pid=91;s.fps=30;s.unix_ns=100;strcpy(s.title_id,"CUSA12345");
+ assert(onion_fps_sample_valid(&s,100));assert(!onion_fps_sample_valid(&s,99));
+ assert(!onion_fps_sample_valid(&s,100+ONION_FPS_STALE_NS+1));
+ s.fps=std::numeric_limits<float>::quiet_NaN();assert(!onion_fps_sample_valid(&s,100));
+ s.fps=60;memset(s.title_id,'A',sizeof(s.title_id));assert(!onion_fps_sample_valid(&s,100));
+ return 0;
+}

@@ -1,3 +1,5 @@
+#include <onion/fps_sample.h>
+#include "private-1240-p5.h"
 #include "port_boot_abi.hpp"
 
 /* Copyright (C) 2025 etaHEN / LightningMods
@@ -62,10 +64,7 @@ struct PortHookTransaction {
  ~PortHookTransaction(){if(begun&&!committed)RollbackPortDetours();}
  bool commit(){return committed=CommitPortDetours();}
 };
-struct PortAuthRestore {
- int pid;uintptr_t original;
- ~PortAuthRestore(){if(original)kernel_set_ucred_authid(pid,original);}
-};
+
 #endif
 
 extern "C" long ptr_syscall = 0;
@@ -368,35 +367,17 @@ void ShellHexDump(const void* data, size_t size) {
 AtomicString fps_string;
 ssize_t(*read_orig)(int fd, void *buf, size_t count) = nullptr;
 ssize_t read_hook(int fd, void* buf, size_t count) {
-    ssize_t ret = read_orig(fd, buf, count);
-   // shellui_log("read_hook called: fd=%d, count=%zu, ret=%zd", fd, count, ret);
-    if (global_conf.overlay_fps && count == 65536 && ret>0 && buf) {
-        void* found = search_bytes(buf, ret<100?(size_t)ret:100, "FPS", 3);
-        if (found) {
-            const char* fps_ptr = (const char*)found;
-            const char* end=(const char*)buf+ret;
-
-            // Skip "FPS" and any separators (: = space etc)
-            fps_ptr += 3; // Skip "FPS"
-            while (fps_ptr<end && *fps_ptr && !isdigit((unsigned char)*fps_ptr)) {
-                fps_ptr++;
-            }
-
-            // Extract the number
-            std::string fps_value;
-            while (fps_ptr<end && *fps_ptr && (isdigit((unsigned char)*fps_ptr) || *fps_ptr == '.')) {
-                fps_value += *fps_ptr;
-                fps_ptr++;
-            }
-
-            if (!fps_value.empty()) {
-                fps_string.store(fps_value);
-              //  shellui_log("Captured FPS: %s", fps_value.c_str());
-            }
-            return ret;
-        }
-    }
-    return ret;
+    return read_orig(fd,buf,count);
+}
+static std::string current_game_fps() {
+    static OnionFpsSample *native=nullptr,*bc=nullptr;
+    char title[32]={};int app=sceSystemServiceGetAppIdOfRunningBigApp();
+    if(app<0 || sceSystemServiceGetAppTitleId(app,title))return "--";
+    bool ps5=!strncmp(title,"PPSA",4)||!strncmp(title,"PPSB",4);
+    OnionFpsSample sample{};
+    int rc=onion_fps_read_path(ps5?"/system_tmp/etahen_fps_native.sample":"/system_tmp/etahen_fps_bc.sample",ps5?&native:&bc,&sample);
+    if(rc || strcmp(sample.title_id,title))return "--";
+    char text[32];snprintf(text,sizeof(text),"%.1f",sample.fps);return text;
 }
 
 int get_ip_address(char* ip_address);
@@ -560,7 +541,7 @@ void OnRender_Hook(MonoObject* instance)
 		}
         if (global_conf.overlay_fps) {
             // Update FPS value
-            std::string current_fps = fps_string.load();
+            std::string current_fps = current_game_fps();
             fps_value = Invoke<MonoObject*>(pui_img, mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Widget"), Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene", Game, "RootWidget"), "FindWidgetByName", mono_string_new(Root_Domain, "id_fps_value"));
             Set_Property(mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Label"), fps_value, "Text", mono_string_new(Root_Domain, current_fps.c_str()));
         }
@@ -730,29 +711,61 @@ int main(int argc, char const *argv[]) {
 
 
   pid_t pid = getpid();
-  uintptr_t old_authid = set_ucred_to_debugger();
+  // Controller navigation runs concurrently in ShellUI. Do not replace the
+  // process-wide identity while that code is running. Module lookup below uses
+  // the SDK kernel-read path, not the debugger-only module enumeration syscalls.
+  const uint64_t startup_auth=kernel_get_ucred_authid(pid);
+  P5Event("p6 original ShellUI auth (read only)",startup_auth);
+  if(!startup_auth)return -1;
 #ifdef ETAHEN_PORT_1360
-  PortAuthRestore auth_restore{pid,old_authid};
+  P5Event("before hook transaction");
   PortHookTransaction hook_transaction;
-  if(!old_authid||!hook_transaction.begun)return -1;
+  P5Event("after hook transaction",hook_transaction.begun);
+  if(!hook_transaction.begun)return -1;
 #endif
 
 
+  P5Event("module before libSceAppInstUtil.sprx");
   int appinstaller_handle = get_module_handle(pid, "libSceAppInstUtil.sprx");
+  P5Event("module after libSceAppInstUtil.sprx",(uintptr_t)appinstaller_handle,appinstaller_handle?0:errno);
+  if(!appinstaller_handle){PortStatus("Required module lookup failed: libSceAppInstUtil.sprx");return -1;}
+  P5Event("symbol before sceAppInstUtilInstallByPackage");
   KERNEL_DLSYM(appinstaller_handle, sceAppInstUtilInstallByPackage);
+  P5Event("symbol after sceAppInstUtilInstallByPackage",(uintptr_t)sceAppInstUtilInstallByPackage,sceAppInstUtilInstallByPackage?0:errno);
   
 
+  P5Event("module before libkernel_sys.sprx");
   int libkernelsys_handle = get_module_handle(pid, "libkernel_sys.sprx");
+  P5Event("module after libkernel_sys.sprx",(uintptr_t)libkernelsys_handle,libkernelsys_handle?0:errno);
+  if(!libkernelsys_handle){PortStatus("Required module lookup failed: libkernel_sys.sprx");return -1;}
 
+  P5Event("symbol before sceKernelDebugOutText");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelDebugOutText);
+  P5Event("symbol after sceKernelDebugOutText",(uintptr_t)sceKernelDebugOutText,sceKernelDebugOutText?0:errno);
+  P5Event("symbol before sceKernelMkdir");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelMkdir);
+  P5Event("symbol after sceKernelMkdir",(uintptr_t)sceKernelMkdir,sceKernelMkdir?0:errno);
+  P5Event("symbol before scePthreadCreate");
   KERNEL_DLSYM(libkernelsys_handle, scePthreadCreate);
+  P5Event("symbol after scePthreadCreate",(uintptr_t)scePthreadCreate,scePthreadCreate?0:errno);
+  P5Event("symbol before sceKernelMprotect");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelMprotect);
+  P5Event("symbol after sceKernelMprotect",(uintptr_t)sceKernelMprotect,sceKernelMprotect?0:errno);
+  P5Event("symbol before sceKernelSendNotificationRequest");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelSendNotificationRequest);
+  P5Event("symbol after sceKernelSendNotificationRequest",(uintptr_t)sceKernelSendNotificationRequest,sceKernelSendNotificationRequest?0:errno);
+  P5Event("symbol before sceKernelGetProsperoSystemSwVersion");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelGetProsperoSystemSwVersion);
+  P5Event("symbol after sceKernelGetProsperoSystemSwVersion",(uintptr_t)sceKernelGetProsperoSystemSwVersion,sceKernelGetProsperoSystemSwVersion?0:errno);
+  P5Event("symbol before sceKernelGetAppInfo");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelGetAppInfo);
+  P5Event("symbol after sceKernelGetAppInfo",(uintptr_t)sceKernelGetAppInfo,sceKernelGetAppInfo?0:errno);
+  P5Event("symbol before sceKernelGetProcessName");
   KERNEL_DLSYM(libkernelsys_handle, sceKernelGetProcessName);
+  P5Event("symbol after sceKernelGetProcessName",(uintptr_t)sceKernelGetProcessName,sceKernelGetProcessName?0:errno);
+  P5Event("symbol before read");
   KERNEL_DLSYM(libkernelsys_handle, read);
+  P5Event("symbol after read",(uintptr_t)read,read?0:errno);
 
   shellui_log("Starting ShellUI Module ....");
   // int native_handle = get_module_handle(pid, "libNativeExtensions.sprx");
@@ -762,71 +775,179 @@ int main(int argc, char const *argv[]) {
   //
   //  JIT
   //
+  P5Event("symbol before sceKernelJitCreateSharedMemory");
   KERNEL_DLSYM(libSceKernelHandle, sceKernelJitCreateSharedMemory);
+  P5Event("symbol after sceKernelJitCreateSharedMemory",(uintptr_t)sceKernelJitCreateSharedMemory,sceKernelJitCreateSharedMemory?0:errno);
+  P5Event("symbol before sceKernelJitCreateAliasOfSharedMemory");
   KERNEL_DLSYM(libSceKernelHandle, sceKernelJitCreateAliasOfSharedMemory);
+  P5Event("symbol after sceKernelJitCreateAliasOfSharedMemory",(uintptr_t)sceKernelJitCreateAliasOfSharedMemory,sceKernelJitCreateAliasOfSharedMemory?0:errno);
+  P5Event("symbol before sceKernelJitMapSharedMemory");
   KERNEL_DLSYM(libSceKernelHandle, sceKernelJitMapSharedMemory);
+  P5Event("symbol after sceKernelJitMapSharedMemory",(uintptr_t)sceKernelJitMapSharedMemory,sceKernelJitMapSharedMemory?0:errno);
+  P5Event("symbol before ioctl");
   KERNEL_DLSYM(libSceKernelHandle, ioctl);
+  P5Event("symbol after ioctl",(uintptr_t)ioctl,ioctl?0:errno);
+  P5Event("symbol before __sys_regmgr_call");
   KERNEL_DLSYM(libSceKernelHandle, __sys_regmgr_call);
+  P5Event("symbol after __sys_regmgr_call",(uintptr_t)__sys_regmgr_call,__sys_regmgr_call?0:errno);
 
   // get the yscall address for the ioctl hook
   static __attribute__ ((used)) long getpid = 0;
+  P5Event("symbol before getpid");
   KERNEL_DLSYM(libSceKernelHandle, getpid);
+  P5Event("symbol after getpid",(uintptr_t)getpid,getpid?0:errno);
   ptr_syscall = getpid;
   ptr_syscall += 0xa; // jump directly to the syscall instruction
 
+  P5Event("module before libSceShellUIUtil.sprx");
   int libshelluiutil_handle = get_module_handle(pid, "libSceShellUIUtil.sprx");
+  P5Event("module after libSceShellUIUtil.sprx",(uintptr_t)libshelluiutil_handle,libshelluiutil_handle?0:errno);
+  if(!libshelluiutil_handle){PortStatus("Required module lookup failed: libSceShellUIUtil.sprx");return -1;}
+  P5Event("symbol before sceShellUIUtilLaunchByUri");
   KERNEL_DLSYM(libshelluiutil_handle, sceShellUIUtilLaunchByUri);
+  P5Event("symbol after sceShellUIUtilLaunchByUri",(uintptr_t)sceShellUIUtilLaunchByUri,sceShellUIUtilLaunchByUri?0:errno);
+  P5Event("symbol before sceShellUIUtilInitialize");
   KERNEL_DLSYM(libshelluiutil_handle, sceShellUIUtilInitialize);
+  P5Event("symbol after sceShellUIUtilInitialize",(uintptr_t)sceShellUIUtilInitialize,sceShellUIUtilInitialize?0:errno);
   
 
   //
   // Mono is already loaded into the SceShellUI process
   //
+  P5Event("module before libmonosgen-2.0.sprx");
   int libmono_handle = get_module_handle(pid, "libmonosgen-2.0.sprx");
+  P5Event("module after libmonosgen-2.0.sprx",(uintptr_t)libmono_handle,libmono_handle?0:errno);
+  if(!libmono_handle){PortStatus("Required module lookup failed: libmonosgen-2.0.sprx");return -1;}
 
+  P5Event("symbol before mono_object_to_string");
   KERNEL_DLSYM(libmono_handle, mono_object_to_string);
+  P5Event("symbol after mono_object_to_string",(uintptr_t)mono_object_to_string,mono_object_to_string?0:errno);
+  P5Event("symbol before mono_get_root_domain");
   KERNEL_DLSYM(libmono_handle, mono_get_root_domain);
+  P5Event("symbol after mono_get_root_domain",(uintptr_t)mono_get_root_domain,mono_get_root_domain?0:errno);
+  P5Event("symbol before mono_property_get_get_method");
   KERNEL_DLSYM(libmono_handle, mono_property_get_get_method);
+  P5Event("symbol after mono_property_get_get_method",(uintptr_t)mono_property_get_get_method,mono_property_get_get_method?0:errno);
+  P5Event("symbol before mono_property_get_set_method");
   KERNEL_DLSYM(libmono_handle, mono_property_get_set_method);
+  P5Event("symbol after mono_property_get_set_method",(uintptr_t)mono_property_get_set_method,mono_property_get_set_method?0:errno);
+  P5Event("symbol before mono_class_get_property_from_name");
   KERNEL_DLSYM(libmono_handle, mono_class_get_property_from_name);
+  P5Event("symbol after mono_class_get_property_from_name",(uintptr_t)mono_class_get_property_from_name,mono_class_get_property_from_name?0:errno);
+  P5Event("symbol before mono_class_from_name");
   KERNEL_DLSYM(libmono_handle, mono_class_from_name);
+  P5Event("symbol after mono_class_from_name",(uintptr_t)mono_class_from_name,mono_class_from_name?0:errno);
+  P5Event("symbol before mono_raise_exception");
   KERNEL_DLSYM(libmono_handle, mono_raise_exception);
+  P5Event("symbol after mono_raise_exception",(uintptr_t)mono_raise_exception,mono_raise_exception?0:errno);
+  P5Event("symbol before mono_runtime_invoke");
   KERNEL_DLSYM(libmono_handle, mono_runtime_invoke);
+  P5Event("symbol after mono_runtime_invoke",(uintptr_t)mono_runtime_invoke,mono_runtime_invoke?0:errno);
+  P5Event("symbol before mono_array_new");
   KERNEL_DLSYM(libmono_handle, mono_array_new);
+  P5Event("symbol after mono_array_new",(uintptr_t)mono_array_new,mono_array_new?0:errno);
+  P5Event("symbol before mono_string_new");
   KERNEL_DLSYM(libmono_handle, mono_string_new);
+  P5Event("symbol after mono_string_new",(uintptr_t)mono_string_new,mono_string_new?0:errno);
+  P5Event("symbol before mono_jit_set_aot_only");
   KERNEL_DLSYM(libmono_handle, mono_jit_set_aot_only);
+  P5Event("symbol after mono_jit_set_aot_only",(uintptr_t)mono_jit_set_aot_only,mono_jit_set_aot_only?0:errno);
+  P5Event("symbol before mono_jit_init_version");
   KERNEL_DLSYM(libmono_handle, mono_jit_init_version);
+  P5Event("symbol after mono_jit_init_version",(uintptr_t)mono_jit_init_version,mono_jit_init_version?0:errno);
+  P5Event("symbol before mono_object_new");
   KERNEL_DLSYM(libmono_handle, mono_object_new);
+  P5Event("symbol after mono_object_new",(uintptr_t)mono_object_new,mono_object_new?0:errno);
+  P5Event("symbol before mono_object_unbox");
   KERNEL_DLSYM(libmono_handle, mono_object_unbox);
+  P5Event("symbol after mono_object_unbox",(uintptr_t)mono_object_unbox,mono_object_unbox?0:errno);
+  P5Event("symbol before mono_set_dirs");
   KERNEL_DLSYM(libmono_handle, mono_set_dirs);
+  P5Event("symbol after mono_set_dirs",(uintptr_t)mono_set_dirs,mono_set_dirs?0:errno);
+  P5Event("symbol before mono_compile_method");
   KERNEL_DLSYM(libmono_handle, mono_compile_method);
+  P5Event("symbol after mono_compile_method",(uintptr_t)mono_compile_method,mono_compile_method?0:errno);
+  P5Event("symbol before mono_assembly_get_image");
   KERNEL_DLSYM(libmono_handle, mono_assembly_get_image);
+  P5Event("symbol after mono_assembly_get_image",(uintptr_t)mono_assembly_get_image,mono_assembly_get_image?0:errno);
+  P5Event("symbol before mono_domain_assembly_open");
   KERNEL_DLSYM(libmono_handle, mono_domain_assembly_open);
+  P5Event("symbol after mono_domain_assembly_open",(uintptr_t)mono_domain_assembly_open,mono_domain_assembly_open?0:errno);
+  P5Event("symbol before mono_get_byte_class");
   KERNEL_DLSYM(libmono_handle, mono_get_byte_class);
+  P5Event("symbol after mono_get_byte_class",(uintptr_t)mono_get_byte_class,mono_get_byte_class?0:errno);
+  P5Event("symbol before mono_thread_attach");
   KERNEL_DLSYM(libmono_handle, mono_thread_attach);
+  P5Event("symbol after mono_thread_attach",(uintptr_t)mono_thread_attach,mono_thread_attach?0:errno);
+  P5Event("symbol before mono_object_get_class");
   KERNEL_DLSYM(libmono_handle, mono_object_get_class);
+  P5Event("symbol after mono_object_get_class",(uintptr_t)mono_object_get_class,mono_object_get_class?0:errno);
+  P5Event("symbol before mono_vtable_get_static_field_data");
   KERNEL_DLSYM(libmono_handle, mono_vtable_get_static_field_data);
+  P5Event("symbol after mono_vtable_get_static_field_data",(uintptr_t)mono_vtable_get_static_field_data,mono_vtable_get_static_field_data?0:errno);
+  P5Event("symbol before mono_class_get_method_from_name");
   KERNEL_DLSYM(libmono_handle, mono_class_get_method_from_name);
+  P5Event("symbol after mono_class_get_method_from_name",(uintptr_t)mono_class_get_method_from_name,mono_class_get_method_from_name?0:errno);
+  P5Event("symbol before mono_class_get_field_from_name");
   KERNEL_DLSYM(libmono_handle, mono_class_get_field_from_name);
+  P5Event("symbol after mono_class_get_field_from_name",(uintptr_t)mono_class_get_field_from_name,mono_class_get_field_from_name?0:errno);
+  P5Event("symbol before mono_aot_get_method");
   KERNEL_DLSYM(libmono_handle, mono_aot_get_method);
+  P5Event("symbol after mono_aot_get_method",(uintptr_t)mono_aot_get_method,mono_aot_get_method?0:errno);
+  P5Event("symbol before mono_field_static_set_value");
   KERNEL_DLSYM(libmono_handle, mono_field_static_set_value);
+  P5Event("symbol after mono_field_static_set_value",(uintptr_t)mono_field_static_set_value,mono_field_static_set_value?0:errno);
+  P5Event("symbol before mono_assembly_setrootdir");
   KERNEL_DLSYM(libmono_handle, mono_assembly_setrootdir);
+  P5Event("symbol after mono_assembly_setrootdir",(uintptr_t)mono_assembly_setrootdir,mono_assembly_setrootdir?0:errno);
+  P5Event("symbol before mono_free");
   KERNEL_DLSYM(libmono_handle, mono_free);
+  P5Event("symbol after mono_free",(uintptr_t)mono_free,mono_free?0:errno);
+  P5Event("symbol before mono_gchandle_new");
   KERNEL_DLSYM(libmono_handle, mono_gchandle_new);
+  P5Event("symbol after mono_gchandle_new",(uintptr_t)mono_gchandle_new,mono_gchandle_new?0:errno);
+  P5Event("symbol before mono_image_open_from_data");
   KERNEL_DLSYM(libmono_handle, mono_image_open_from_data);
+  P5Event("symbol after mono_image_open_from_data",(uintptr_t)mono_image_open_from_data,mono_image_open_from_data?0:errno);
+  P5Event("symbol before mono_runtime_object_init");
   KERNEL_DLSYM(libmono_handle, mono_runtime_object_init);
+  P5Event("symbol after mono_runtime_object_init",(uintptr_t)mono_runtime_object_init,mono_runtime_object_init?0:errno);
+  P5Event("symbol before mono_domain_get");
   KERNEL_DLSYM(libmono_handle, mono_domain_get);
+  P5Event("symbol after mono_domain_get",(uintptr_t)mono_domain_get,mono_domain_get?0:errno);
+  P5Event("symbol before mono_assembly_load_from");
   KERNEL_DLSYM(libmono_handle, mono_assembly_load_from);
+  P5Event("symbol after mono_assembly_load_from",(uintptr_t)mono_assembly_load_from,mono_assembly_load_from?0:errno);
+  P5Event("symbol before mono_method_desc_new");
   KERNEL_DLSYM(libmono_handle, mono_method_desc_new);
+  P5Event("symbol after mono_method_desc_new",(uintptr_t)mono_method_desc_new,mono_method_desc_new?0:errno);
+  P5Event("symbol before mono_method_desc_search_in_class");
   KERNEL_DLSYM(libmono_handle, mono_method_desc_search_in_class);
+  P5Event("symbol after mono_method_desc_search_in_class",(uintptr_t)mono_method_desc_search_in_class,mono_method_desc_search_in_class?0:errno);
+  P5Event("symbol before mono_method_desc_free");
   KERNEL_DLSYM(libmono_handle, mono_method_desc_free);
+  P5Event("symbol after mono_method_desc_free",(uintptr_t)mono_method_desc_free,mono_method_desc_free?0:errno);
+  P5Event("symbol before mono_object_new_specific");
   KERNEL_DLSYM(libmono_handle, mono_object_new_specific);
+  P5Event("symbol after mono_object_new_specific",(uintptr_t)mono_object_new_specific,mono_object_new_specific?0:errno);
+  P5Event("symbol before mono_thread_detach");
   KERNEL_DLSYM(libmono_handle, mono_thread_detach);
+  P5Event("symbol after mono_thread_detach",(uintptr_t)mono_thread_detach,mono_thread_detach?0:errno);
+  P5Event("symbol before mono_array_addr_with_size");
   KERNEL_DLSYM(libmono_handle, mono_array_addr_with_size);
+  P5Event("symbol after mono_array_addr_with_size",(uintptr_t)mono_array_addr_with_size,mono_array_addr_with_size?0:errno);
+  P5Event("symbol before mono_thread_current");
   KERNEL_DLSYM(libmono_handle, mono_thread_current);
+  P5Event("symbol after mono_thread_current",(uintptr_t)mono_thread_current,mono_thread_current?0:errno);
+  P5Event("symbol before mono_class_vtable");
   KERNEL_DLSYM(libmono_handle, mono_class_vtable);
+  P5Event("symbol after mono_class_vtable",(uintptr_t)mono_class_vtable,mono_class_vtable?0:errno);
+  P5Event("symbol before mono_domain_unload");
   KERNEL_DLSYM(libmono_handle, mono_domain_unload);
+  P5Event("symbol after mono_domain_unload",(uintptr_t)mono_domain_unload,mono_domain_unload?0:errno);
+  P5Event("symbol before mono_string_to_utf8");
   KERNEL_DLSYM(libmono_handle, mono_string_to_utf8);
+  P5Event("symbol after mono_string_to_utf8",(uintptr_t)mono_string_to_utf8,mono_string_to_utf8?0:errno);
 
   if (!mono_object_to_string || !mono_get_root_domain ||
       !mono_property_get_get_method || !mono_property_get_set_method ||
@@ -850,30 +971,55 @@ int main(int argc, char const *argv[]) {
     return -1;
   }
 
+  P5Event("module before libSceSystemService.sprx");
   int libscesystem_service_handle =
       get_module_handle(pid, "libSceSystemService.sprx");
+  P5Event("module after libSceSystemService.sprx",(uintptr_t)libscesystem_service_handle,libscesystem_service_handle?0:errno);
+  if(!libscesystem_service_handle){PortStatus("Required module lookup failed: libSceSystemService.sprx");return -1;}
 
+  P5Event("symbol before sceSystemServiceGetAppIdOfRunningBigApp");
   KERNEL_DLSYM(libscesystem_service_handle,
                sceSystemServiceGetAppIdOfRunningBigApp);
+  P5Event("symbol after sceSystemServiceGetAppIdOfRunningBigApp",(uintptr_t)sceSystemServiceGetAppIdOfRunningBigApp,sceSystemServiceGetAppIdOfRunningBigApp?0:errno);
+  P5Event("symbol before sceSystemServiceGetAppTitleId");
   KERNEL_DLSYM(libscesystem_service_handle, sceSystemServiceGetAppTitleId);
+  P5Event("symbol after sceSystemServiceGetAppTitleId",(uintptr_t)sceSystemServiceGetAppTitleId,sceSystemServiceGetAppTitleId?0:errno);
 
 
   void *sceSystemServiceLaunchApp = nullptr;
+  P5Event("symbol before sceSystemServiceLaunchApp");
   KERNEL_DLSYM(libscesystem_service_handle, sceSystemServiceLaunchApp);
+  P5Event("symbol after sceSystemServiceLaunchApp",(uintptr_t)sceSystemServiceLaunchApp,sceSystemServiceLaunchApp?0:errno);
   if (!sceSystemServiceLaunchApp) {
     shellui_log("Failed to resolve sceSystemServiceLaunchApp");
   }
 
+  P5Event("module before libSceRemoteplay.sprx");
   int libRemotePlay_handle = get_module_handle(pid, "libSceRemoteplay.sprx");
+  P5Event("module after libSceRemoteplay.sprx",(uintptr_t)libRemotePlay_handle,libRemotePlay_handle?0:errno);
+  if(!libRemotePlay_handle){PortStatus("Required module lookup failed: libSceRemoteplay.sprx");return -1;}
 
+  P5Event("symbol before sceRemoteplayNotifyPinCodeError");
   KERNEL_DLSYM(libRemotePlay_handle, sceRemoteplayNotifyPinCodeError);
+  P5Event("symbol after sceRemoteplayNotifyPinCodeError",(uintptr_t)sceRemoteplayNotifyPinCodeError,sceRemoteplayNotifyPinCodeError?0:errno);
+  P5Event("symbol before sceRemoteplayInitialize");
   KERNEL_DLSYM(libRemotePlay_handle, sceRemoteplayInitialize);
+  P5Event("symbol after sceRemoteplayInitialize",(uintptr_t)sceRemoteplayInitialize,sceRemoteplayInitialize?0:errno);
+  P5Event("symbol before sceRemoteplayGeneratePinCode");
   KERNEL_DLSYM(libRemotePlay_handle, sceRemoteplayGeneratePinCode);
+  P5Event("symbol after sceRemoteplayGeneratePinCode",(uintptr_t)sceRemoteplayGeneratePinCode,sceRemoteplayGeneratePinCode?0:errno);
+  P5Event("symbol before sceRemoteplayConfirmDeviceRegist");
   KERNEL_DLSYM(libRemotePlay_handle, sceRemoteplayConfirmDeviceRegist);
+  P5Event("symbol after sceRemoteplayConfirmDeviceRegist",(uintptr_t)sceRemoteplayConfirmDeviceRegist,sceRemoteplayConfirmDeviceRegist?0:errno);
 
   
+  P5Event("module before libSceRegMgr.sprx");
   int libReg_handle = get_module_handle(pid, "libSceRegMgr.sprx");
+  P5Event("module after libSceRegMgr.sprx",(uintptr_t)libReg_handle,libReg_handle?0:errno);
+  if(!libReg_handle){PortStatus("Required module lookup failed: libSceRegMgr.sprx");return -1;}
+  P5Event("symbol before sceRegMgrGetInt");
   KERNEL_DLSYM(libReg_handle, sceRegMgrGetInt);
+  P5Event("symbol after sceRegMgrGetInt",(uintptr_t)sceRegMgrGetInt,sceRegMgrGetInt?0:errno);
 
   /*
   "Sce.Vsh.UILib", "SystemSoftwareVersionInfo");
@@ -930,7 +1076,9 @@ int main(int argc, char const *argv[]) {
   std::string getstring_method = base64_decode("R2V0U3RyaW5n"); // "GetString"
   std::string term = base64_decode("VGVybWluYXRl"); // "Terminate"
 
+  P5Event("before system version query");
   sceKernelGetProsperoSystemSwVersion(&sw);
+  P5Event("after system version query",(uintptr_t)sw.version);
   is_3xx = (sw.version < 0x4000042);
   is_6xx = (sw.version >= 0x6000000);
   shellui_log("System Software Version: %s is_3xx: %s", sw.version_str, is_3xx ? "Yes" : "No");
@@ -948,7 +1096,10 @@ int main(int argc, char const *argv[]) {
       shellui_log("Settings loaded successfully");
     }
 
+  P5Event("before Mono root domain");
+    P5Event("setting Display_tids",global_conf.display_tids);
     Root_Domain = mono_get_root_domain();
+  P5Event("after Mono root domain",(uintptr_t)Root_Domain);
     if (!Root_Domain) {
       shellui_log( "failed to get shellui root domain");
       return -1;
@@ -957,7 +1108,9 @@ int main(int argc, char const *argv[]) {
     }
 
     PortTrace("Mono attach pending");
+  P5Event("before Mono thread attach");
     void* port_mono_thread=mono_thread_attach(Root_Domain);
+  P5Event("after Mono thread attach",(uintptr_t)port_mono_thread);
     PortTrace("Mono attach returned");
 #ifdef ETAHEN_PORT_1360
     if(!port_mono_thread){shellui_log("Mono thread attach failed");return -1;}
@@ -1265,6 +1418,7 @@ int main(int argc, char const *argv[]) {
       abi==PortBootAbi::Unsupported?"rejected":"accepted",count,instance,option_is_enum,option_byref,option_base_name?option_base_name:"null",option_bytes,option_alignment,return_name?return_name:"null",names[0]?names[0]:"null",names[2]?names[2]:"none",bytes,alignment);
     if(option_base_name)free_mono(option_base_name);
     for(auto name:names)if(name)free_mono(name);if(return_name)free_mono(return_name);
+    P5Event(abi_detail);
     if(abi==PortBootAbi::Unsupported){notify("Unrecognized Boot signature; Toolbox stopped before hooking it");PortStatus(abi_detail);return -1;}
     PortStatus(abi==PortBootAbi::TwoArguments?"Mono Boot ABI: two arguments":abi==PortBootAbi::StringArgument?"Mono Boot ABI: string argument":"Mono Boot ABI: nullable value argument");
     const auto boot_address=Get_Address_of_Method(AppSystem_img,appsystem_namespace.c_str(),boot_helper.c_str(),boot_method.c_str(),count);
@@ -1352,16 +1506,18 @@ int main(int argc, char const *argv[]) {
     return restored?0:1;
 #else
     PortTrace("version setter pending");
+  P5Event("before version display setter");
     SetVersionString(final_ver.c_str());
+  P5Event("after version display setter",(uintptr_t)0);
     PortTrace("version setter returned");
 #endif
 #endif
-    set_proc_authid(pid, old_authid);
+    P5Event("p6 ShellUI auth after initialization (read only)",kernel_get_ucred_authid(pid));
     //
     // Continue
     //
     if(global_conf.display_tids)
-       ReloadRNPSApp("NPXS40002"); // home screen tid
+       {P5Event("before title-ID refresh");ReloadRNPSApp("NPXS40002");P5Event("after title-ID refresh");}
 
 #ifdef ETAHEN_PORT_1360
     // Managed initialization is complete. Do not keep an attached Mono thread
@@ -1383,7 +1539,8 @@ int main(int argc, char const *argv[]) {
     scePthreadCreate(&thread_id, nullptr, dialogue_thread, nullptr, "dialogue_thread");
 
     // file to let the main daemon know that its finished loading
-    touch_file("/system_tmp/toolbox_online");
+    if(touch_file("/system_tmp/toolbox_online"))P5Ready();
+    else P5Event("Toolbox readiness marker failed",0,errno);
 #ifdef ETAHEN_PORT_1360
     FILE* port_pid=fopen("/system_tmp/etahen-experimental-toolbox.pid","w");
     if(port_pid){fprintf(port_pid,"%d",pid);fclose(port_pid);}

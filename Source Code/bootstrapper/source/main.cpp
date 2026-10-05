@@ -1,3 +1,9 @@
+#include "port_startup_state.hpp"
+#include <string>
+#include <initializer_list>
+#include "private-1240-p5.h"
+extern "C" unsigned char private_watch_start[];
+extern "C" unsigned char fps_native_start[];
 #include "port_firmware.h"
 #include "port_toolbox_route.hpp"
 #include "port_process_match.hpp"
@@ -693,292 +699,49 @@ bool is_elf_file(const void* buffer, size_t size) {
 }
 
 
+#include "../../include/port_plugin_runtime.h"
 bool load_plugin(const char *path, const char *filename)
 {
-  int fd = open(path, O_RDONLY);
-  if (fd < 0)
-  {
-    perror("Failed to open file");
-    return false;
-  }
-
-  struct stat st;
-  if (fstat(fd, &st) != 0)
-  {
-    perror("Failed to get file stats");
-    close(fd);
-    return false;
-  }
-  // Allocate buffer and read the entire file.
-  uint8_t *buf = (uint8_t *)malloc(st.st_size);
-  if (!buf)
-  {
-    perror("Failed to allocate memory for Plugin file");
-    close(fd);
-    return false;
-  }
-
-  if (read(fd, buf, st.st_size) != st.st_size)
-  {
-    perror("Failed to read Plugin file");
-    free(buf), buf = NULL;
-    close(fd);
-    return false;
-  }
-  close(fd);
-
-  const CustomPluginHeader *header = (const CustomPluginHeader *)buf;
-
-  char pbuf[256];
-  snprintf(pbuf, sizeof(pbuf), "/system_tmp/%s.PID", header->titleID);
-
-  if (strstr(filename, ".elf") != NULL)
-  {
-    // Handle ELF plugin loading
-    if (!is_elf_file(buf, st.st_size))
-    {
-      free(buf), buf = NULL;
-      return false;
-    }
-
-    pid_t pid = -1;
-    int f = open(pbuf, O_RDONLY);
-    if (f >= 0)
-    {
-      char t[32];
-      int r = read(f, t, sizeof(t) - 1);
-      close(f);
-      if (r > 0)
-      {
-        t[r] = 0;
-        pid = atoi(t);
-      }
-    }
-
-    if (pid > 0)
-    {
-      char name[32];
-      if (sceKernelGetProcessName(pid, name) < 0)
-      {
-        printf("Stale plugin PID file detected for %s, removing\n", header->titleID);
-        unlink(pbuf);
-        pid = -1;
-      }
-    }
-
-    printf("seeing if elf is running\n");
-    if (pid > 0)
-    {
-      printf("killing pid %d\n", pid);
-      if (kill(pid, SIGKILL))
-        perror("kill");
-      unlink(pbuf);
-    }
-
-    printf("loading elf %s\n", filename);
-    pid = elfldr_spawn("/", sock.fd, buf, header->titleID);
-    if (pid >= 0)
-      printf("  Launched!\n");
-    else
-      printf("  Already Running!\n");
-
-    free(buf), buf = NULL;
-
-    f = open(pbuf, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    if (f >= 0)
-    {
-      if (pid >= 0)
-      {
-        char t[32];
-        int l = snprintf(t, sizeof(t), "%d", pid);
-        write(f, t, l);
-      }
-      else
-      {
-        unlink(pbuf);
-      }
-      close(f);
-    }
-
-    return true;
-  }
-
-  if (!is_valid_plugin(buf))
-  {
-    puts("Invalid plugin file.");
-    free(buf), buf = NULL;
-    return false;
-  }
-
-  puts("============== Plugin info ===============");
-  printf("Plugin Prefix: %s\n", header->prefix);
-  printf("Plugin TitleID: %s\n", header->titleID);
-  printf("Plugin Version: %s\n", header->plugin_version);
-  puts("=========================================");
-
-  snprintf(pbuf, sizeof(pbuf), "/system_tmp/%s.PID", header->titleID);
-
-  uint8_t *elf = get_elf_header_address(buf);
-
-  pid_t pid = -1;
-  int f = open(pbuf, O_RDONLY);
-  if (f >= 0)
-  {
-    char t[32];
-    int r = read(f, t, sizeof(t) - 1);
-    close(f);
-    if (r > 0)
-    {
-      t[r] = 0;
-      pid = atoi(t);
-    }
-  }
-
-  if (pid > 0)
-  {
-    char name[32];
-    if (sceKernelGetProcessName(pid, name) < 0)
-    {
-      printf("Stale plugin PID file detected for %s, removing\n", header->titleID);
-      unlink(pbuf);
-      pid = -1;
-    }
-  }
-
-  printf("seeing if plugin is running\n");
-  if (pid > 0)
-  {
-    printf("killing pid %d\n", pid);
-    if (kill(pid, SIGKILL))
-      perror("kill");
-    unlink(pbuf);
-  }
-
-  if (strcmp(header->titleID, "EORR37000") == 0)
-  {
-    notify("The Error disabler plugin is no longer required and has been auto deleted.");
-    unlink(path);
-    free(buf), buf = NULL;
-    return true;
-  }
-
-  printf("loading plugin %s\n", path);
-  pid = elfldr_spawn("/", sock.fd, elf, header->titleID);
-  if (pid >= 0)
-    printf("  Launched!\n");
-  else
-    printf("  Already Running!\n");
-
-  f = open(pbuf, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-  if (f >= 0)
-  {
-    if (pid >= 0)
-    {
-      char t[32];
-      int l = snprintf(t, sizeof(t), "%d", pid);
-      write(f, t, l);
-    }
-    else
-    {
-      unlink(pbuf);
-    }
-    close(f);
-  }
-
-  free(buf), buf = NULL;
-
-  return true;
+  (void)filename;
+  return port_plugin_load(path, sock.fd, sceKernelGetProcessName, elfldr_spawn) != 0;
 }
 
 /*=================== LOAD PLUGINS =========================*/
 char **find_plugin_files() {
-  const char *base_dirs[] = {
-    // Plugin directories
-    "/mnt/usb0/etahen/plugins", "/mnt/usb0/etaHEN/plugins",
-    "/mnt/usb1/etahen/plugins", "/mnt/usb2/etahen/plugins",
-    "/mnt/usb3/etahen/plugins", "/user/data/etaHEN/plugins",
-    "/user/data/etahen/plugins",
-    
-    // Payload directories
-    "/mnt/usb0/etahen/payloads", "/mnt/usb0/etaHEN/payloads",
-    "/mnt/usb1/etahen/payloads", "/mnt/usb2/etahen/payloads",
-    "/mnt/usb3/etahen/payloads", "/user/data/etaHEN/payloads",
-    "/user/data/etahen/payloads"
-};
-
-  int base_dirs_count = sizeof(base_dirs) / sizeof(base_dirs[0]);
-
-  char **plugin_paths = NULL;
-  char full_path[255];
-  char auto_start_path[255];
-  plugin_count = 0;
-  loaded_filenames = (char **)malloc(255 * sizeof(char *));
-
-  for (int i = 0; i < base_dirs_count; i++) {
-    DIR *dir = opendir(base_dirs[i]);
-    if (dir) {
-      struct dirent *entry;
-      while ((entry = readdir(dir)) != NULL) {
-        (void)memset(full_path, 0, sizeof(full_path));
-        if (entry->d_type == DT_REG) { // Regular file
-          const char *ext = strrchr(entry->d_name, '.');
-          if (ext && (strcmp(ext, ".plugin") == 0 || strcmp(ext, ".elf") == 0)) {
-            bool skip = false;
-            // Construct full path
-            snprintf(full_path, sizeof(full_path), "%s/%s", base_dirs[i],
-                     entry->d_name);
-            snprintf(auto_start_path, sizeof(auto_start_path),
-                     "%s/%s.auto_start", base_dirs[i], entry->d_name);
-
-            if (!if_exists(auto_start_path)) {
-              printf("skipping auto start for plugin: %s\n", full_path);
-              continue;
-            }
-
-            for (int j = 0; j < plugin_count; j++) {
-              if (strcmp(loaded_filenames[j], entry->d_name) == 0) {
-                skip = true;
-                // Only print the message for /data/etaHEN/plugins/elfldr.plugin
-                // as per specific requirement
-                if ((strcmp(base_dirs[i], "/data/etaHEN/plugins") == 0) || (strcmp(entry->d_name, "/data/etaHEN/payloads") == 0)) {
-                  printf("skipping duplicate plugin: %s | already loaded: %s\n",
-                         full_path, loaded_filenames[j]);
-                }
-                break;
-              }
-            }
-            if (skip)
-              continue;
-
-            // Add to array
-            plugin_paths = (char **)realloc(plugin_paths, (plugin_count + 1) *
-                                                              sizeof(char *));
-            plugin_paths[plugin_count] = strdup(full_path);
-
-            // Copy filename to loaded_filenames
-            loaded_filenames[plugin_count] =
-                strdup(entry->d_name); // Use strdup for simplicity
-            plugin_count++;
-          }
+  plugin_count=0;loaded_filenames=nullptr;
+  char **paths=nullptr;
+  for(const char *base : {"/data","/mnt/usb0","/mnt/usb1","/mnt/usb2","/mnt/usb3"})
+    for(const char *name : {"etaHEN","etahen"})
+      for(const char *kind : {"plugins","payloads"}){
+        std::string directory=std::string(base)+"/"+name+"/"+kind;
+        DIR *dir=opendir(directory.c_str());if(!dir)continue;
+        dirent *entry;
+        while((entry=readdir(dir))){
+          if(!port_plugin_suffix(entry->d_name,".elf") && !port_plugin_suffix(entry->d_name,".plugin"))continue;
+          std::string path=directory+"/"+entry->d_name;
+          if(access((path+".auto_start").c_str(),F_OK))continue;
+          struct stat st{};
+          if(lstat(path.c_str(),&st) || !S_ISREG(st.st_mode))continue;
+          bool duplicate=false;
+          for(int i=0;i<plugin_count;i++)if(path==paths[i])duplicate=true;
+          if(duplicate)continue;
+          char *saved_path=strdup(path.c_str()), *saved_name=strdup(entry->d_name);
+          if(!saved_path || !saved_name){free(saved_path);free(saved_name);continue;}
+          char **next=(char**)realloc(paths,(plugin_count+1)*sizeof(char*));
+          if(!next){free(saved_path);free(saved_name);continue;}
+          paths=next;
+          next=(char**)realloc(loaded_filenames,(plugin_count+1)*sizeof(char*));
+          if(!next){free(saved_path);free(saved_name);continue;}
+          loaded_filenames=next;paths[plugin_count]=saved_path;loaded_filenames[plugin_count]=saved_name;
+          plugin_count++;
         }
+        closedir(dir);
       }
-      closedir(dir);
-    }
-  }
-
-  return plugin_paths;
+  return paths;
 }
-void free_plugin_files(char **plugin_files) {
-  // Free memory for loaded_filenames
-  for (int i = 0; i < plugin_count; i++) {
-    free(loaded_filenames[i]);
-  }
-  free(loaded_filenames);
-
-  for (int i = 0; i < plugin_count; i++) {
-    free((void *)plugin_files[i]);
-  }
-  free((void *)plugin_files);
+void free_plugin_files(char **paths) {
+  for(int i=0;i<plugin_count;i++){free(paths[i]);free(loaded_filenames[i]);}
+  free(paths);free(loaded_filenames);loaded_filenames=nullptr;plugin_count=0;
 }
 
 bool Byepervisor();
@@ -1043,7 +806,7 @@ int main(void) {
 #ifdef ETAHEN_PORT_1360
   if (!snipers_firmware_profile(kernel_get_fw_version())) {
     port_result("bootstrap","firmware profile unsupported",-1,0);
-    notify("This experimental etaHEN build has no profile for this firmware");
+    notify("Unsupported firmware: this etaHEN build requires a supported 11.00-13.60 profile");
     return 1;
   }
   const auto* diagnostic_profile=snipers_firmware_profile(kernel_get_fw_version());
@@ -1325,13 +1088,17 @@ int main(void) {
     return -2;
   }
 
+  unlink(P5_TARGET_PATH);unlink(P5_TARGET_PATH ".tmp");
+  int observer_pid=elfldr_spawn("/",sock.fd,private_watch_start,"Snipers Controller P6 Watch");
+  port_result("bootstrap","p5 observer spawn",observer_pid,observer_pid<0?errno:0);
   klog_printf("Starting the main etaHEN daemon ...");
   port_stage("bootstrap","before critical-service spawn");
 #ifdef ETAHEN_PORT_1360
   puts("Starting etaHEN critical service");
 #endif
 
-  if (elfldr_spawn("/", sock.fd, daemon_start, "etaHEN Critical services") >= 0) {
+  int critical_pid=elfldr_spawn("/",sock.fd,daemon_start,"etaHEN Critical services");
+  if (critical_pid >= 0) {
       port_stage("bootstrap","critical service spawned");
       klog_printf("  Launched!\n");
   } else {
@@ -1354,15 +1121,28 @@ int main(void) {
 
   // return 0;
 
+  if(elfldr_spawn("/",sock.fd,fps_native_start,"etaHEN FPS Sampler")<0)
+    port_stage("bootstrap","native FPS sampler could not start");
   port_stage("bootstrap","before plugin discovery");
   char **plugin_paths = find_plugin_files();
   port_result("bootstrap","plugin count",plugin_count,0);
-  if (plugin_paths && plugin_count > 0) {
+  bool plugins_ready=false;
+  if(plugin_count>0){
+    for(int tick=0;tick<600;tick++){
+      FILE *f=fopen(PORT_STARTUP_PATH,"rb");PortStartupRecord record;
+      bool valid=port_read_startup(f,record);if(f)fclose(f);
+      if(valid){int state=record.evaluate(critical_pid,find_pid("SceShellUI"));
+        if(state==1){plugins_ready=true;break;}if(state<0)break;}
+      usleep(100000);
+    }
+    if(!plugins_ready)notify("Plugin auto-start skipped: etaHEN startup did not confirm readiness");
+  }
+  if (plugin_paths && plugin_count > 0 && plugins_ready) {
     int loaded_plugins = 0;
     // First, load all plugins except elfldr.plugin
     for (int i = 0; i < plugin_count; i++) {
       // Skip loading elfldr.plugin in this loop
-      if (strstr(plugin_paths[i], "elfldr") == 0) {
+      if (strcmp(loaded_filenames[i], "elfldr.plugin") != 0) {
           klog_printf("Loading plugin: %s\n", plugin_paths[i]);
         if (!load_plugin(plugin_paths[i], loaded_filenames[i])) {
           snprintf(buff, sizeof(buff),
@@ -1381,8 +1161,8 @@ int main(void) {
     // snprintf(buff, sizeof(buff), "Successfully loaded %d plugins",
     // loaded_plugins); notify(buff);
     klog_printf("Successfully loaded %d plugins\n", loaded_plugins);
-    free_plugin_files(plugin_paths);
   }
+  free_plugin_files(plugin_paths);
   // raise(SIGKILL, getpid());
   // sceSystemServiceLoadExec("exit", NULL);
   klog_puts("============== Spawner (Bootstrapper) Finished =================");

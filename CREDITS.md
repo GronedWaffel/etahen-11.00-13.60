@@ -11,7 +11,7 @@ The upstream README is preserved in [UPSTREAM-README.md](UPSTREAM-README.md), in
 - [kstuff-lite v1.11](https://github.com/EchoStretch/kstuff-lite): bundled runtime input in the tested build, by Echo Stretch and upstream kstuff contributors, including sleirsgoevy. Obtain its source and license from its upstream release/tree.
 - [PS5Debug-NG 1.3.2](https://github.com/Pharaoh2k/ps5debug-NG): Services payload, building on PS5Debug by CTN and SiSTR0 and the PS4Debug lineage. Retains its upstream license.
 - [PS5 app dumper v1.11](https://github.com/EchoStretch/ps5-app-dumper): upstream daemon dependency. Retains its upstream license.
-- The upstream etaHEN `fps.prx` asset remains an external build input. It is not original work of this port.
+- Native PS5 FPS sampling is adapted from OnionHEN; the PS4 counter is rebuilt from source. The unused legacy `fps.prx` is no longer embedded.
 - [libNidResolver](https://github.com/astrelsky/libNidResolver), astrelsky: vendored source retains its LICENSE.
 - Vendored tiny-json, cJSON, pugixml and other source/header libraries retain their in-file or directory license notices.
 - Linked third-party libraries include zlib, curl, wolfSSL, minizip, libmicrohttpd, libpsl, Zstandard, OpenSSL and SQLite. Their static archives are external build inputs, not committed project source. Preserve their individual licenses when distributing a linked binary.
@@ -25,3 +25,9 @@ The upstream README is preserved in [UPSTREAM-README.md](UPSTREAM-README.md), in
 - [ps5-payload-dev/elfldr](https://github.com/ps5-payload-dev/elfldr) and [ftpsrv](https://github.com/ps5-payload-dev/ftpsrv): ELF loading, runtime and memory access references.
 
 The project retains etaHEN's [GPLv3 LICENSE](LICENSE). Third-party components are governed by their own notices. No ownership of upstream projects is claimed, and this port is not affiliated with Sony Interactive Entertainment.
+
+## Unified FPS integration (development candidate)
+
+The native PS5 sampler under `Source Code/fps_native` is adapted from [OnionHEN](https://github.com/aydencharles/onionHEN/tree/b23ffe674b2de9f62fe634944c9230ff149d593a), commit `b23ffe674b2de9f62fe634944c9230ff149d593a`, by LightningMods and the OnionHEN contributors, licensed under GPL-3.0-or-later. Upstream credits **PHU Games Tools / ArkSama** for the FPS research and **John Törnblom / PS5-Payload-dev** for SDK and memory-access foundations. Original in-file notices are preserved.
+
+Local changes isolate sampling in a separate payload process; gate it on etaHEN readiness and the FPS setting; select native game titles; bound diagnostics; validate ring sizes, translations and fresh samples; and repair the shared-sample sequence publication. The PS4 counter uses etaHEN's relocated, stopped-process hook publication, counts successful GNM submissions and publishes outside the render thread. These counters need per-game hardware validation; source attribution does not imply upstream endorsement or verified compatibility.

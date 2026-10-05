@@ -18,7 +18,7 @@ const cardManifest=JSON.parse(await readFile(path.join(root,'build/toolbox-card-
 const cardPath=path.join(root,'build/toolbox-card-install.elf');
 const cardHash=createHash('sha256').update(await readFile(cardPath)).digest('hex');
 if(cardManifest.files.find(f=>f.file==='toolbox-card-install.elf')?.sha256!==cardHash)throw Error('Card installer does not match its manifest');
-const assets={daemon:path.join(root,'build/daemon/daemon.elf'),util:path.join(root,'build/util/util.elf'),toolbox_card:cardPath,store_png:path.join(source,'bootstrapper/assets/store.png'),sicon:path.join(source,'bootstrapper/assets/etahen_sicon.png'),webman_icon:path.join(source,'bootstrapper/assets/webMAN.png'),kstuff,fps_prx:path.join(source,'bootstrapper/assets/fps.prx')};
+const assets={fps_native:path.join(root,'build/fps-native/fps-native.elf'),private_watch:path.join(root,'build/private-watch.elf'),daemon:path.join(root,'build/daemon/daemon.elf'),util:path.join(root,'build/util/util.elf'),toolbox_card:cardPath,store_png:path.join(source,'bootstrapper/assets/store.png'),sicon:path.join(source,'bootstrapper/assets/etahen_sicon.png'),webman_icon:path.join(source,'bootstrapper/assets/webMAN.png'),kstuff};
 const embed=path.join(out,'embedded.S');
 if(diagnostic)assets.daemon=path.join(root,diagnosticRoot+'/daemon/daemon.elf');
 if(profile)assets.daemon=path.join(root,'build/startup-profile/daemon/daemon.elf');

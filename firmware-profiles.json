@@ -1,6 +1,6 @@
 {
-  "channel": "experimental",
-  "basePath": "/builder/ex",
+  "channel": "unified-development",
+  "basePath": "/builder",
   "commits": {
     "sdk": "f7fd02e6e195902a449b5e664917be8c01888b34",
     "kstuff": "48cd2c4ce62aa9ca0c2cc014c1e512f276ae7c17",
@@ -14,432 +14,13 @@
     "sha256": "f60ad72dfdc103e5736d9d983d60eb0d04980d71e69072824189b94aefb13e80"
   },
   "excluded": {
-    "9.05": "No public Relapse table found",
     "11.40": "No public Relapse table found"
   },
   "firmwares": [
     {
-      "firmware": "7.00",
-      "code": "0x7000000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14817976,
-        "sysentvecPs4": 14818352,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798192,
-        "sysentsPs4": 1763968,
-        "pagerTable": 14880960
-      },
-      "sources": {
-        "relapse": "2783ad919f990f9a9c32d0a6c1548390d9935f39f12e30e88e8556cb932d54c9",
-        "kstuff": "9598ee47c24b34b646cd49adf8452c0f6f5357b0e0e748b90bb19f1aac30ab3f"
-      }
-    },
-    {
-      "firmware": "7.01",
-      "code": "0x7010000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14817976,
-        "sysentvecPs4": 14818352,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798192,
-        "sysentsPs4": 1763968,
-        "pagerTable": 14880960
-      },
-      "sources": {
-        "relapse": "33159eb5194e68063670d4436269fd9b649cd15e21b740b4a8908fbd083c5a62",
-        "kstuff": "2416936ea24056ea1ca8605b5f7d098389513549ec9333ef4d97dfd91c2a6b6e"
-      }
-    },
-    {
-      "firmware": "7.20",
-      "code": "0x7200000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14818168,
-        "sysentvecPs4": 14818544,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798560,
-        "sysentsPs4": 1764336,
-        "pagerTable": 14881152
-      },
-      "sources": {
-        "relapse": "2ad96fb5928bfef623de9715b08f8c8cc97a1b54492f1e88c1f7e67db8a5b454",
-        "kstuff": "a985a0ccf36eecb0a29006f930e3b585db4c2c55975743e8e29fb3fab401d1e9"
-      }
-    },
-    {
-      "firmware": "7.40",
-      "code": "0x7400000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14818168,
-        "sysentvecPs4": 14818544,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798560,
-        "sysentsPs4": 1764336,
-        "pagerTable": 14881152
-      },
-      "sources": {
-        "relapse": "0d03f0394133cc9bd63deeee32053f4dd20fe9ed7ddbddc720f1d70cc1d8bd1a",
-        "kstuff": "7b9858546b9e12f4671412f8af83a7620838dec6af3a833e045e48221f712287"
-      }
-    },
-    {
-      "firmware": "7.60",
-      "code": "0x7600000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14818168,
-        "sysentvecPs4": 14818544,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798752,
-        "sysentsPs4": 1764528,
-        "pagerTable": 14881152
-      },
-      "sources": {
-        "relapse": "8d193a9c820a9a28d40f4e804824b7e72bbe6a9e1bb0ea40c77f583212220485",
-        "kstuff": "d1e154c191282be906f8994571a54ec845e72c520795467615a752930292866e"
-      }
-    },
-    {
-      "firmware": "7.61",
-      "code": "0x7610000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42310992,
-        "security": 11305060,
-        "rootvnode": 51148048,
-        "textDelta": 12910592,
-        "sysentvec": 14818168,
-        "sysentvecPs4": 14818544,
-        "cryptSingletonArray": 47650864,
-        "sysents": 1798752,
-        "sysentsPs4": 1764528,
-        "pagerTable": 14881152
-      },
-      "sources": {
-        "relapse": "cb57359fe88f6f1ddb660a4db1a32628c098f49535e622a17ca59b032b4c82f8",
-        "kstuff": "bbabf32340d369669bcf4563d69c086ae572ef484684eb210a04582a61b65d6a"
-      }
-    },
-    {
-      "firmware": "8.00",
-      "code": "0x8000000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42425680,
-        "security": 11284580,
-        "rootvnode": 51361040,
-        "textDelta": 13041664,
-        "sysentvec": 14818472,
-        "sysentvecPs4": 14818848,
-        "cryptSingletonArray": 47765552,
-        "sysents": 1736112,
-        "sysentsPs4": 1701888,
-        "pagerTable": 14881360
-      },
-      "sources": {
-        "relapse": "d8bf9a9e6b76dd650b884a0f1bda633166206d42160e15d64008ba98c330a575",
-        "kstuff": "a262fd35109d80db4af285c7ea1c4e2af792e3a589ee936b33d25e6c0710e70d"
-      }
-    },
-    {
-      "firmware": "8.20",
-      "code": "0x8200000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42425680,
-        "security": 11284580,
-        "rootvnode": 51361040,
-        "textDelta": 13041664,
-        "sysentvec": 14818472,
-        "sysentvecPs4": 14818848,
-        "cryptSingletonArray": 47765552,
-        "sysents": 1736112,
-        "sysentsPs4": 1701888,
-        "pagerTable": 14881360
-      },
-      "sources": {
-        "relapse": "920ba75eb9679588465ec0b39f8f04acbee9f93a84549c43ee4c2dc037ed7b4f",
-        "kstuff": "97665d704b9c3624da3aa2b62f829eecefc78c0dd3127bd73f94cfa852bdc0b8"
-      }
-    },
-    {
-      "firmware": "8.40",
-      "code": "0x8400000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42425680,
-        "security": 11284580,
-        "rootvnode": 51361040,
-        "textDelta": 13041664,
-        "sysentvec": 14818472,
-        "sysentvecPs4": 14818848,
-        "cryptSingletonArray": 47765552,
-        "sysents": 1736112,
-        "sysentsPs4": 1701888,
-        "pagerTable": 14881360
-      },
-      "sources": {
-        "relapse": "e5978f69d09137c65280c7a30524d3ff4d3355452e5af4bdf2cd3782429be3af",
-        "kstuff": "34426437ded33db953635ef5672ea0c54c9c2fd4cba21fefaacf5fec49217a6a"
-      }
-    },
-    {
-      "firmware": "8.60",
-      "code": "0x8600000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 42425680,
-        "security": 11284580,
-        "rootvnode": 51361040,
-        "textDelta": 13041664,
-        "sysentvec": 14818472,
-        "sysentvecPs4": 14818848,
-        "cryptSingletonArray": 47765552,
-        "sysents": 1736112,
-        "sysentsPs4": 1701888,
-        "pagerTable": 14881360
-      },
-      "sources": {
-        "relapse": "cf9ca033e9f773b9d4a665516f674ebf40daa202bee72390c7bd5f9b0272ca0a",
-        "kstuff": "37ad67760eea8a75b6eb3264482a8ee13c6256195fe59146855e8487836111d6"
-      }
-    },
-    {
-      "firmware": "9.00",
-      "code": "0x9000000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41246032,
-        "security": 14098532,
-        "rootvnode": 50181392,
-        "textDelta": 13238272,
-        "sysentvec": 14394952,
-        "sysentvecPs4": 14395328,
-        "cryptSingletonArray": 46586416,
-        "sysents": 1747984,
-        "sysentsPs4": 1713664,
-        "pagerTable": 14550048
-      },
-      "sources": {
-        "relapse": "514a79fe229a0f1ac131aa450f9ce2e8b7f4a08fb6fefd036bbfd35bdeb6d458",
-        "kstuff": "6d1246a34a095b746a51c22dfba2bce5254f3082aacfd5364867b1570961a135"
-      }
-    },
-    {
-      "firmware": "9.20",
-      "code": "0x9200000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41246032,
-        "security": 14102628,
-        "rootvnode": 50181392,
-        "textDelta": 13238272,
-        "sysentvec": 14394952,
-        "sysentvecPs4": 14395328,
-        "cryptSingletonArray": 46586416,
-        "sysents": 1748064,
-        "sysentsPs4": 1713744,
-        "pagerTable": 14550048
-      },
-      "sources": {
-        "relapse": "278580cde067cb876caff4a66fab445f64713dc04cf37ef708a8ad93bdde2a7b",
-        "kstuff": "5713e052b6505545e629b7f3f485cc2a7ecc434471177f5edb81b10e153c7084"
-      }
-    },
-    {
-      "firmware": "9.40",
-      "code": "0x9400000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41246032,
-        "security": 14102628,
-        "rootvnode": 50181392,
-        "textDelta": 13238272,
-        "sysentvec": 14394952,
-        "sysentvecPs4": 14395328,
-        "cryptSingletonArray": 46586416,
-        "sysents": 1748064,
-        "sysentsPs4": 1713744,
-        "pagerTable": 14550048
-      },
-      "sources": {
-        "relapse": "be63f0e84d9dbc5fabdf278ea785e3403aea7051d575ab22e811c162f607761e",
-        "kstuff": "7c3f7188279e5279f524202973a482d324cc726942a3f9f8fa29725fefbecf8a"
-      }
-    },
-    {
-      "firmware": "9.60",
-      "code": "0x9600000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41246032,
-        "security": 14102628,
-        "rootvnode": 50181392,
-        "textDelta": 13238272,
-        "sysentvec": 14394952,
-        "sysentvecPs4": 14395328,
-        "cryptSingletonArray": 46586416,
-        "sysents": 1748064,
-        "sysentsPs4": 1713744,
-        "pagerTable": 14550048
-      },
-      "sources": {
-        "relapse": "9dad0a62346d5c487ab0a5eebfeb710309535cd9dd3f83b5b6e437878b240273",
-        "kstuff": "5fb1f4f4604d5efeaa8da5737ea117235b9d987d8a6d3d2a28f9b09983be5d64"
-      }
-    },
-    {
-      "firmware": "10.00",
-      "code": "0x10000000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41311600,
-        "security": 14127204,
-        "rootvnode": 49952016,
-        "textDelta": 13369344,
-        "sysentvec": 14395096,
-        "sysentvecPs4": 14395472,
-        "cryptSingletonArray": 46357872,
-        "sysents": 1757440,
-        "sysentsPs4": 1723312,
-        "pagerTable": 14550256
-      },
-      "sources": {
-        "relapse": "23a0e624f4b566b8188c47486177eaf0fe4853148ffe1eaba9894650d3b22a65",
-        "kstuff": "612a5951a0249aca2b145e4ca6506d747a1ca1bc8bdeb094f013b9bc4ac3a119"
-      }
-    },
-    {
-      "firmware": "10.01",
-      "code": "0x10010000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41311600,
-        "security": 14127204,
-        "rootvnode": 49952016,
-        "textDelta": 13369344,
-        "sysentvec": 14395096,
-        "sysentvecPs4": 14395472,
-        "cryptSingletonArray": 46357872,
-        "sysents": 1757440,
-        "sysentsPs4": 1723312,
-        "pagerTable": 14550256
-      },
-      "sources": {
-        "relapse": "203062c0085941bba84ffc7b40465f642f37f94c0f414b1a16ddd16c89f0073d",
-        "kstuff": "226fd1f144a64b358aa76c68ed7c19901a518a41701a1e2399466b9fed9467d7"
-      }
-    },
-    {
-      "firmware": "10.20",
-      "code": "0x10200000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41311600,
-        "security": 14127204,
-        "rootvnode": 49952016,
-        "textDelta": 13369344,
-        "sysentvec": 14395096,
-        "sysentvecPs4": 14395472,
-        "cryptSingletonArray": 46357872,
-        "sysents": 1757472,
-        "sysentsPs4": 1723344,
-        "pagerTable": 14550256
-      },
-      "sources": {
-        "relapse": "60b5823268fcc855680d9538662144cd1064bb24e5266ea597311925c7437089",
-        "kstuff": "2f3f59970d00c046e95f4c87dfbb98e63b5ddaa53be7fb9dc740eb26c69d8583"
-      }
-    },
-    {
-      "firmware": "10.40",
-      "code": "0x10400000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41311600,
-        "security": 14127204,
-        "rootvnode": 49952016,
-        "textDelta": 13369344,
-        "sysentvec": 14395096,
-        "sysentvecPs4": 14395472,
-        "cryptSingletonArray": 46357872,
-        "sysents": 1757472,
-        "sysentsPs4": 1723344,
-        "pagerTable": 14550256
-      },
-      "sources": {
-        "relapse": "28e86590dee5feeb4918b75e2db1f0b6d6cf1a1358c6e6b4c713cb07a1c95ef7",
-        "kstuff": "ef7b84d8d1611334f4c320eadff5fce6f7dcc2996a7920a54a859adccb04a3b7"
-      }
-    },
-    {
-      "firmware": "10.60",
-      "code": "0x10600000",
-      "status": "experimental-unvalidated",
-      "youtubeVersion": "01.000.003",
-      "offsets": {
-        "allproc": 41311600,
-        "security": 14127204,
-        "rootvnode": 49952016,
-        "textDelta": 13369344,
-        "sysentvec": 14395096,
-        "sysentvecPs4": 14395472,
-        "cryptSingletonArray": 46357872,
-        "sysents": 1757472,
-        "sysentsPs4": 1723344,
-        "pagerTable": 14550256
-      },
-      "sources": {
-        "relapse": "e5f8bb96dd50af9419c29c7dd16ac033ef26fa928369c2721a092263ea454a8d",
-        "kstuff": "39629acf316e5f7b974910d1b19b3f18186ae3765b82191c1121887ba179193f"
-      }
-    },
-    {
       "firmware": "11.00",
       "code": "0x11000000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42425712,
@@ -461,7 +42,7 @@
     {
       "firmware": "11.20",
       "code": "0x11200000",
-      "status": "experimental-unvalidated",
+      "status": "community-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42425712,
@@ -483,7 +64,7 @@
     {
       "firmware": "11.60",
       "code": "0x11600000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42425712,
@@ -505,7 +86,7 @@
     {
       "firmware": "12.00",
       "code": "0x12000000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42491392,
@@ -527,7 +108,7 @@
     {
       "firmware": "12.02",
       "code": "0x12020000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42491392,
@@ -549,7 +130,7 @@
     {
       "firmware": "12.20",
       "code": "0x12200000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42491392,
@@ -571,7 +152,7 @@
     {
       "firmware": "12.40",
       "code": "0x12400000",
-      "status": "experimental-unvalidated",
+      "status": "community-confirmed",
       "youtubeVersion": "01.000.003",
       "offsets": {
         "allproc": 42491392,
@@ -593,7 +174,7 @@
     {
       "firmware": "12.60",
       "code": "0x12600000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42491392,
@@ -615,7 +196,7 @@
     {
       "firmware": "12.70",
       "code": "0x12700000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42491392,
@@ -637,7 +218,7 @@
     {
       "firmware": "13.00",
       "code": "0x13000000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42753536,
@@ -659,7 +240,7 @@
     {
       "firmware": "13.20",
       "code": "0x13200000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42753536,
@@ -681,7 +262,7 @@
     {
       "firmware": "13.40",
       "code": "0x13400000",
-      "status": "experimental-unvalidated",
+      "status": "community-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42770048,
@@ -703,7 +284,7 @@
     {
       "firmware": "13.42",
       "code": "0x13420000",
-      "status": "experimental-unvalidated",
+      "status": "supported-profile-not-hardware-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42770048,
@@ -725,7 +306,7 @@
     {
       "firmware": "13.60",
       "code": "0x13600000",
-      "status": "experimental-unvalidated",
+      "status": "community-confirmed",
       "youtubeVersion": "01.000.030",
       "offsets": {
         "allproc": 42770048,
@@ -744,5 +325,6 @@
         "kstuff": "64c5819c481b1b86d495a8e4db56046bb7d981fffe739d40e30b592343f3a57c"
       }
     }
-  ]
+  ],
+  "minimumFirmware": "11.00"
 }

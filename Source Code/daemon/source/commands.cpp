@@ -1,3 +1,4 @@
+#include "port_startup_state.hpp"
 /* Copyright (C) 2025 etaHEN / LightningMods
 
 This program is free software; you can redistribute it and/or modify it
@@ -571,6 +572,7 @@ void *fifo_and_dumper_thread(void *args) noexcept {
 
   while (true) {
       std::string sandbox_dir;
+      usleep(250000); // Bound polling even when there is no active game or readiness record.
       // restart the util services daemon if it crashes or exits
       if (find_pid("etaHEN Utility") < 0 && retries < MAX_RETIRES) {
           if (retries == 0 || !util_elf) {
@@ -600,19 +602,29 @@ void *fifo_and_dumper_thread(void *args) noexcept {
           free(util_elf);
       }
 
+    FILE *ready_file=fopen(PORT_STARTUP_PATH,"rb");PortStartupRecord ready_record;
+    bool ready=port_read_startup(ready_file,ready_record);if(ready_file)fclose(ready_file);
+    extern int get_shellui_pid();
+    if(!ready || ready_record.evaluate(getpid(),get_shellui_pid())!=1)continue;
     pthread_mutex_lock(&jb_lock);
 
     if(global_conf.enable_fan_speed)
        set_fan_threshold(global_conf.fan_threshold);
 
     int bappid;
+    extern void port_poll_game_plugins(const std::string &,int);
+    extern void port_reset_game_plugins();
     if (!Get_Running_App_TID(tid, bappid)) {
+      port_reset_game_plugins();
+      extern int done_appid;done_appid=-1;
       pthread_mutex_unlock(&jb_lock);
       continue;
     }
 
 
-    if( if_exists("/system_tmp/fps_enabled") && (tid.rfind("CUSA") != std::string::npos || tid.rfind("SCUS") != std::string::npos)){
+    port_poll_game_plugins(tid,bappid);
+
+    if( if_exists("/system_tmp/fps_enabled") && (tid.rfind("CUSA",0)==0 || tid.rfind("SCUS",0)==0 || tid.rfind("PCAS",0)==0 || tid.rfind("PCJS",0)==0 || tid.rfind("PCKS",0)==0 || tid.rfind("CUHJ",0)==0)){
         // cmd_enable_fps(bappid);
         if(is_800)
           cmd_enable_fps_new(bappid);

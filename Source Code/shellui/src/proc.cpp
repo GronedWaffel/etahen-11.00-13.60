@@ -1,3 +1,5 @@
+#include "private-1240-p5.h"
+#include <errno.h>
 extern "C"{
 #include "../include/proc.h"
 }
@@ -117,19 +119,19 @@ void list_proc_modules(struct proc* proc)
 module_info_t* get_module_info(pid_t pid, const char* module_name)
 {
     size_t num_handles = 0;
-    syscall(SYS_dl_get_list, pid, NULL, 0, &num_handles);
+    {P5Event("before module count"); int p5_rc=syscall(SYS_dl_get_list, pid, NULL, 0, &num_handles); P5Event("module count result",p5_rc,p5_rc?errno:0);}
     
     if (num_handles)
     {
         uintptr_t* handles = (uintptr_t*) calloc(num_handles, sizeof(uintptr_t));
-        syscall(SYS_dl_get_list, pid, handles, num_handles, &num_handles);
+        {P5Event("before module list"); int p5_rc=syscall(SYS_dl_get_list, pid, handles, num_handles, &num_handles); P5Event("module list result",p5_rc,p5_rc?errno:0);}
 
         module_info_t* mod_info = (module_info_t*) malloc(sizeof(module_info_t));
         
         for (int i = 0; i < num_handles; ++i)
         {
             bzero(mod_info, sizeof(module_info_t));
-            syscall(SYS_dl_get_info_2, pid, 1, handles[i], mod_info);
+            {int p5_rc=syscall(SYS_dl_get_info_2, pid, 1, handles[i], mod_info); if(p5_rc)P5Event("module info failure",p5_rc,errno);}
             if (!strcmp(mod_info->filename, module_name))
             {
                 return mod_info;
@@ -144,13 +146,17 @@ module_info_t* get_module_info(pid_t pid, const char* module_name)
 }
 
 
+// SDK v0.43 kernel_dynlib_handle reads the kernel's module list; it does
+// not require replacing ShellUI's auth ID with debugger credentials. Never
+// fall back to privileged SYS_dl_get_list on the live UI process.
 int get_module_handle(pid_t pid, const char* module_name)
 {
-    module_info_t* mod_info = get_module_info(pid, module_name);
-    return mod_info ? mod_info->handle : 0; 
+    if (!module_name || !*module_name) { errno=EINVAL; return 0; }
+    unsigned int handle=0;
+    errno=0;
+    const int rc=kernel_dynlib_handle(pid,module_name,&handle);
+    const int error=rc ? (errno ? errno : EIO) : (handle ? 0 : ENOENT);
+    P5Event("p6 SDK module lookup result",handle,error);
+    if(rc || !handle){errno=error;return 0;}
+    return (int)handle;
 }
-
-
-
-
-

@@ -7,11 +7,6 @@
       "sha256": "ab9a6cb4d3b1daf139d4d646e402b1cf569071acd64599c936d7a3a6164dc779"
     },
     {
-      "path": "Source Code/bootstrapper/assets/fps.prx",
-      "bytes": 14781,
-      "sha256": "d0a1b6540a714f8f3776061a059d7cb34a80bf1547b0b25f971d343be3ac1b5a"
-    },
-    {
       "path": "Source Code/daemon/assets/ps5debug.elf",
       "bytes": 4059688,
       "sha256": "949b0e6e0fe3f24f4a820319fd76d9ccb92f9770cbb1a64b09a8eca5c1fc9ff3"

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// A separate, removable home-screen deep-link tile. Never edit app.db directly.
+// A separate, removable home-screen deep-link tile with transactional ordering.
 #include <ps5/kernel.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <dlfcn.h>
+#ifndef ETAHEN_CARD_REMOVE
+#include "toolbox-card-order.hpp"
+#endif
 #include "../Source Code/include/port_toolbox_route.hpp"
 #include "../Source Code/include/port_firmware.h"
 #include "../Source Code/include/experimental_trace.h"
@@ -105,6 +108,11 @@ int main(){
  if(!rc){stage="registered";rc=write_file(receipt,marker,sizeof(marker)-1);}
 #endif
 done:
+#ifndef ETAHEN_CARD_REMOVE
+ if(!rc && (strcmp(stage,"registered")==0 || strcmp(stage,"already-installed")==0)){
+   stage="card-order";rc=pin_toolbox_card();checkpoint(rc?"card order could not be set":"card order saved; no dashboard refresh requested");
+ }
+#endif
  bool restored=!changed;
  if(changed)for(int i=0;i<3&&!restored;++i)restored=auth(saved)==0;
  experimental_event("toolbox-card",stage,rc,0);

@@ -132,6 +132,7 @@ typedef struct {
     std::string id;
     std::string name; // filename
     std::string version;
+  bool game = false;
 } Plugins;
 
 typedef struct {
