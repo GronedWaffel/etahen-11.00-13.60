@@ -27,4 +27,4 @@ Output: `build/etaHEN-multifw-experimental.elf` and `build/manifest.json`. The f
 
 The local full build and user-tested ELF are recorded in `PORT-STATUS.md`. A clean online dependency provisioning workflow and bit-for-bit reproducibility across different toolchain installations have not been established; the manifest is provided so missing or different inputs are explicit. Before distributing linked binaries, supply the corresponding sources and license notices for their upstream components too.
 
-`node scripts/build-plugin-tests.mjs` builds the system and game lifecycle fixtures in `build/plugin-fixtures/`. Native PS5 and PS4 FPS components are compiled by `build-all.mjs`. See `UNIFIED-CANDIDATE.md` for the hardware test steps and supported plugin formats.
+`node scripts/build-plugin-tests.mjs` builds the system and game lifecycle `.plugin` fixtures (official 29-byte header plus ELF body) in `build/plugin-fixtures/`. Native PS5 and PS4 FPS components are compiled by `build-all.mjs`. See `UNIFIED-CANDIDATE.md` for the hardware test steps and supported plugin formats.

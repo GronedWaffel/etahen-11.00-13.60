@@ -1052,7 +1052,7 @@ void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml) {
   auto &list = plugins_xml ? plugins_list : auto_list;
   list.clear();
   std::vector<std::string> directories;
-  for (const auto &base : {std::string("/user/data"), std::string("/usb0"), std::string("/usb1"), std::string("/usb2"), std::string("/usb3")})
+  for (const auto &base : {std::string("/usb0"), std::string("/usb1"), std::string("/usb2"), std::string("/usb3"), std::string("/usb4"), std::string("/usb5"), std::string("/usb6"), std::string("/usb7"), std::string("/user/data")})
     for (const auto &name : {"etaHEN", "etahen"})
       for (const auto &kind : {"plugins", "payloads"})
         directories.push_back(base + "/" + name + "/" + kind);
@@ -1084,7 +1084,7 @@ void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml) {
       item.name = entry->d_name;
       item.version = info.version;
       item.id = std::string(plugins_xml ? "id_plugin_" : "id_auto_plugin_") + std::to_string(list.size()+1);
-      const std::string title = item.name + (item.version.empty() ? "" : " (v" + item.version + ")");
+      const std::string title = item.name + (item.version.empty() ? " [ELF payload]" : " (v" + item.version + ")");
       xml_buffer += "<toggle_switch id=\"" + item.id + "\" title=\"" + plugin_xml_escape(title) + "\" second_title=\"" + plugin_xml_escape(item.path) + "\" value=\"0\"/>\n";
       list.push_back(item);
     }
@@ -1103,11 +1103,15 @@ void generate_plugin_xml(std::string &xml_buffer, bool plugins_xml) {
       while((file=readdir(files))){
         std::string path="/data/etaHEN/game_plugins/"+title+"/"+file->d_name;
         if(!port_game_plugin_path(path,nullptr))continue;
+        unsigned char prefix[128];struct stat st{};PortPlugin info{};
+        int fd=open(("/user"+path).c_str(),O_RDONLY);if(fd<0)continue;
+        bool regular=fstat(fd,&st)==0 && S_ISREG(st.st_mode) && st.st_size>=64;
+        ssize_t bytes=regular?read(fd,prefix,sizeof(prefix)):-1;close(fd);
+        if(bytes<0 || !port_plugin_parse(path.c_str(),prefix,(size_t)bytes,(size_t)st.st_size,&info))continue;
         Plugins item;item.game=true;item.path=path;item.shellui_path="/user"+path;
-        item.name=file->d_name;item.tid=title;
+        item.name=file->d_name;item.tid=info.identity;item.version=info.version;
         item.id=std::string(plugins_xml?"id_plugin_game_":"id_auto_plugin_game_")+std::to_string(list.size()+1);
-        std::string tag=plugins_xml?"button":"toggle_switch";
-        xml_buffer+="<"+tag+" id=\""+item.id+"\" title=\""+plugin_xml_escape(title+" - "+item.name)+"\" second_title=\""+(plugins_xml?"Load into this running game. Close the game to unload.":"Load when this game starts.")+"\""+(plugins_xml?"":" value=\"0\"")+"/>\n";
+        xml_buffer+="<toggle_switch id=\""+item.id+"\" title=\""+plugin_xml_escape(title+" - "+item.name+" (v"+item.version+")")+"\" second_title=\""+(plugins_xml?"Start or stop this plugin daemon. Matching game must be running to start.":"Start plugin daemon when this game runs.")+"\" value=\"0\"/>\n";
         list.push_back(item);
       }
       closedir(files);

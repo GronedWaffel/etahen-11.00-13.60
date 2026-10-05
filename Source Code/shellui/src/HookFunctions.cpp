@@ -123,9 +123,10 @@ void RemoveGameWidget(RemoveWidget widget) {
     // Helper lambda to remove widgets by name
     auto removeWidgets = [](const std::vector<const char*>& widgetNames) {
         MonoClass* widgetClass = mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Widget");
-        MonoObject* rootWidget = Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene", Game, "RootWidget");
+        MonoObject* rootWidget = OverlayRoot();
+        if (!rootWidget) return;
         for (const char* name : widgetNames) {
-            MonoObject* child = Invoke<MonoObject*>(pui_img, widgetClass, rootWidget, "FindWidgetByName", mono_string_new(Root_Domain, name));
+            MonoObject* child = OverlayFind(rootWidget, name);
             if (child) {
                 Invoke<void>(pui_img, widgetClass, child, "RemoveFromParent");
             }
@@ -162,8 +163,10 @@ void RemoveGameWidget(RemoveWidget widget) {
 }
 
 void CreateGameWidget(CreateWidget widget) {
+    MonoObject* rootWidget = OverlayRoot();
+    if (!rootWidget) return;
     MonoObject* font = CreateUIFont(22, 0, 0);
-    MonoObject* rootWidget = Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene", Game, "RootWidget");
+    if (!font) return;
 
     std::vector<WidgetConfig> configs;
 
@@ -235,6 +238,7 @@ void CreateGameWidget(CreateWidget widget) {
 
     // Create and append all widgets
     for (const auto& config : configs) {
+        if (OverlayFind(rootWidget, config.id)) continue;
         MonoObject* label = CreateLabel(config.id, config.x, config.y, config.text, font,
             config.bold, 0, config.r, config.g, config.b, config.a);
         Widget_Append_Child(rootWidget, label);
@@ -1015,7 +1019,7 @@ void* load_plugin_thread(void* args) {
     notify("Loading Plugin %s ...", plugin->path.c_str());
     if (plugin->game) {
         bool ok=IPC_Client::getInstance(false).LaunchGamePlugin(plugin->path);
-        notify(ok ? "Game plugin dispatched: %s" : "Game plugin not loaded: %s. Check the running title and log; restart the game before retrying.",plugin->name.c_str());
+        notify(ok ? "Game plugin process started: %s" : "Game plugin not loaded: %s. Check the running title and log; restart the game before retrying.",plugin->name.c_str());
         delete plugin;
         return nullptr;
     }
@@ -1156,7 +1160,7 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
 
     // Check if id is in the excluded list
     bool isExcludedId = std::find(excludedIds.begin(), excludedIds.end(), id) != excludedIds.end();
-    if (value.empty() && !isExcludedId && !is_game && !is_cust_pkg && id.rfind("id_plugin_game_",0)!=0) {
+    if (value.empty() && !isExcludedId && !is_game && !is_cust_pkg) {
 #if SHELL_DEBUG==1
         shellui_log("[LM HOOK] OnPress_Hook: Id: %s has no value set", id.c_str());
 #endif
@@ -1226,16 +1230,17 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
 			return oOnPress(Instance, element, e);
 		}
         if (!atoi(value.c_str())) {
-			RemoveGameWidget(REMOVE_FPS_OVERLAY);
+			InvalidateFpsWidgets();
             unlink("/system_tmp/fps_enabled");
             
         }
         else {
-			CreateGameWidget(CREATE_FPS_OVERLAY);
+			InvalidateFpsWidgets();
             touch_file("/system_tmp/fps_enabled");
         }
 
-        global_conf.overlay_fps = !global_conf.overlay_fps;
+        global_conf.overlay_fps = atoi(value.c_str()) != 0;
+        P5Event("FPS setting changed", global_conf.overlay_fps);
     }
     else if (id == "id_overlay_ip") {
 		if (atoi(value.c_str()) == global_conf.overlay_ip) {
@@ -1344,8 +1349,7 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
 			CreateGameWidget(CREATE_GPU_OVERLAY);
         }
         if (global_conf.overlay_fps) {
-            RemoveGameWidget(REMOVE_FPS_OVERLAY);
-            CreateGameWidget(CREATE_FPS_OVERLAY);
+            InvalidateFpsWidgets();
         }
         if (global_conf.overlay_ip) {
             RemoveGameWidget(REMOVE_IP_OVERLAY);
@@ -1392,13 +1396,6 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             {
                 if (plugin.id == id)
                 {
-                    if (plugin.game) {
-                        pthread_t worker;
-                        auto info=new Plugins(plugin);
-                        if(pthread_create(&worker,nullptr,load_plugin_thread,info)==0)pthread_detach(worker);
-                        else {delete info;notify("Could not start game plugin loader");}
-                        break;
-                    }
                     char pbuf[96];
                     snprintf(pbuf, sizeof(pbuf), "/system_tmp/%s.PID", plugin.tid.c_str());
                     int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
@@ -1985,7 +1982,7 @@ int OnPress_Hook(MonoObject* Instance, MonoObject* element, MonoObject* e)
             }
         
             for (auto plugin : plugins_list) {
-                if(plugin.game)continue; // Game plugins end with their game, never kill the game for Lite Mode.
+                // Game-targeted .plugin files run in their own daemon process too.
                 int pid = port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName);
                 if (pid > 0) {
                     shellui_log("killing pid: 0x%X", pid);
@@ -2314,7 +2311,7 @@ int OnPreCreate_Hook(MonoObject* Instance, MonoObject* element) {
 
     if (!plugins_list.empty()) {
         for (auto plugin : plugins_list) {
-            if (plugin.id == id && !plugin.game) {
+            if (plugin.id == id) {
                 s_MonoText = mono_string_new(Root_Domain, (port_plugin_running(plugin.tid.c_str(), sceKernelGetProcessName) > 0) ? "1" : "0");
             }
         }
@@ -2960,6 +2957,7 @@ void save_appid(int value, const char* filename) {
 }
 bool app_launched = false;
 int LaunchApp(MonoString* titleId, uint64_t* args, int argsSize, LaunchAppParam *param){
+   if (titleId && Mono_to_String(titleId)=="ETHN13600") P5Event("Toolbox card reached native LaunchApp");
 #if 1
    if(!if_exists("/system_tmp/patch_plugin")) {
       #if SHELL_DEBUG == 1

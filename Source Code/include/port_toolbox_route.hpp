@@ -13,5 +13,5 @@ inline const char* port_toolbox_uri(){
 #define ETAHEN_TOOLBOX_URI port_toolbox_uri()
 #define ETAHEN_TOOLBOX_ROOT_URI "etaHEN?Toolbox"
 inline bool port_toolbox_root_requested(const char* uri){
- return uri&&(!strcmp(uri,ETAHEN_TOOLBOX_ROOT_URI)||!strcmp(uri,"pssettings:play?mode=settings&function=debug_settings_old&etahen_root=1"));
+ return uri&&(!strcmp(uri,"pshome:gamehub?titleId=ETHN13600")||!strcmp(uri,ETAHEN_TOOLBOX_ROOT_URI)||!strcmp(uri,"pssettings:play?mode=settings&function=debug_settings_old&etahen_root=1"));
 }

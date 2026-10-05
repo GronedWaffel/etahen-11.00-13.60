@@ -18,7 +18,7 @@ static inline bool port_game_plugin_path(const std::string &path, std::string *t
     if(rest.size()<15 || rest[9]!='/' || !port_game_title(rest.substr(0,9)))return false;
     const std::string name=rest.substr(10);
     if(name.find('/')!=std::string::npos || name.find('\\')!=std::string::npos ||
-       name.find("..")!=std::string::npos || name[0]=='.' || !port_plugin_suffix(name.c_str(),".elf"))return false;
+       name.find("..")!=std::string::npos || name[0]=='.' || !port_plugin_suffix(name.c_str(),".plugin"))return false;
     if(title)*title=rest.substr(0,9);
     return true;
 }

@@ -710,7 +710,7 @@ bool load_plugin(const char *path, const char *filename)
 char **find_plugin_files() {
   plugin_count=0;loaded_filenames=nullptr;
   char **paths=nullptr;
-  for(const char *base : {"/data","/mnt/usb0","/mnt/usb1","/mnt/usb2","/mnt/usb3"})
+  for(const char *base : {"/mnt/usb0","/mnt/usb1","/mnt/usb2","/mnt/usb3","/mnt/usb4","/mnt/usb5","/mnt/usb6","/mnt/usb7","/data"})
     for(const char *name : {"etaHEN","etahen"})
       for(const char *kind : {"plugins","payloads"}){
         std::string directory=std::string(base)+"/"+name+"/"+kind;

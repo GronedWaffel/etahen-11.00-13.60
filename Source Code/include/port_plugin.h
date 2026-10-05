@@ -56,10 +56,9 @@ static inline int port_plugin_parse(const char *path, const void *data,
         if (available < PORT_PLUGIN_HEADER_SIZE || total < PORT_PLUGIN_HEADER_SIZE + 64 ||
             memcmp(p, "etaHEN_PLUGIN", 14) || p[23] || p[28]) return 0;
         for (unsigned i = 14; i < 23; ++i) {
-            if (i < 18 ? (p[i] < 'A' || p[i] > 'Z') : (p[i] < '0' || p[i] > '9')) return 0;
+            if (i < 18 ? !((p[i]>='A' && p[i]<='Z') || (p[i]>='a' && p[i]<='z')) : (p[i] < '0' || p[i] > '9')) return 0;
         }
-        for (unsigned i = 24; i < 28 && p[i]; ++i)
-            if (p[i] < 32 || p[i] > 126) return 0;
+        if(p[24]<'0' || p[24]>'9' || p[25]!='.' || p[26]<'0' || p[26]>'9' || p[27]<'0' || p[27]>'9')return 0;
         memcpy(out->identity, p + 14, 9);
         memcpy(out->version, p + 24, 4);
         off = PORT_PLUGIN_HEADER_SIZE;

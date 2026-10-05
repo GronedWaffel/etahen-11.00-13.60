@@ -666,3 +666,9 @@ void createJson_hook(MonoObject* inst, MonoObject* array, MonoString* id, MonoSt
 
 extern bool (*boot_orig_string)(MonoString*,int,MonoString*);
 bool uri_boot_hook_string(MonoString*,int,MonoString*);
+
+// Checked, current-scene access for the overlay; no cached scene pointer.
+MonoObject* OverlayRoot();
+MonoObject* OverlayFind(MonoObject*, const char*);
+bool OverlayText(MonoObject*, const char*);
+void InvalidateFpsWidgets();

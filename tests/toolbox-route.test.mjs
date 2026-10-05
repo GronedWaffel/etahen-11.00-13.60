@@ -46,7 +46,7 @@ int main(){
   const char* expected=fw<0x11000000?"pssettings:play?mode=settings&function=debug_settings":"pssettings:play?mode=settings&function=debug_settings_old";
   assert(std::string(port_toolbox_uri())==expected);
   for(bool lite:{false,true}){global_conf.lite_mode=lite;
-   for(const char* uri:{"etaHEN?Toolbox","pssettings:play?mode=settings&function=debug_settings_old&etahen_root=1"}){
+   for(const char* uri:{"pshome:gamehub?titleId=ETHN13600","etaHEN?Toolbox","pssettings:play?mode=settings&function=debug_settings_old&etahen_root=1"}){
     MonoString input=uri;dirty();assert(uri_boot_hook_2(&input,-2147483647));clean();assert(seen==expected&&seen_opt==-2147483647);
     dirty();assert(uri_boot_hook(&input,7,0x123456789abcdefLL));clean();assert(seen==expected&&seen_opt==7&&seen_arg==0x123456789abcdefLL);
     MonoString title="title";dirty();assert(uri_boot_hook_string(&input,8,&title));clean();assert(seen==expected&&seen_string==&title);
@@ -55,6 +55,7 @@ int main(){
  }
  for(uint32_t unsupported:{0x07000000u,0x10600001u,0x10990000u,0x09050000u,0x11400000u,0x13990000u,0u})assert(!snipers_firmware_profile(unsupported));
  MonoString unrelated="pssettings:play?mode=settings&function=network";dirty();assert(uri_boot_hook_2(&unrelated,42));assert(seen==unrelated&&seen_opt==42&&game_shortcut_activated);
+ assert(!port_toolbox_root_requested("pshome:gamehub?titleId=PPSA04264"));assert(!port_toolbox_root_requested("pshome:gamehub?titleId=ETHN136000"));assert(!port_toolbox_root_requested("pshome:gamehub?titleId=ETHN13600&other=1"));
  assert(!port_toolbox_root_requested(nullptr));assert(!port_toolbox_root_requested("etaHEN?ToolboxExtra"));
 }
 `;

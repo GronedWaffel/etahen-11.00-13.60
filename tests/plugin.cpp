@@ -8,9 +8,9 @@
 static void u64(unsigned char *p, uint64_t n) { memcpy(p, &n, 8); }
 int main(int argc,char **argv) {
     std::string title;
-    assert(port_game_plugin_path("/data/etaHEN/game_plugins/CUSA12345/test.elf",&title) && title=="CUSA12345");
-    assert(port_game_plugin_path("/data/etaHEN/game_plugins/PPSA12345/test.elf",&title));
-    for(const char *path:{"/data/etaHEN/game_plugins/NPXS40047/test.elf","/data/etaHEN/game_plugins/CUSA12345/../a.elf","/data/etaHEN/game_plugins/CUSA1234/test.elf","/data/etaHEN/game_plugins/CUSA12345/a.elf.auto_start","/data/etaHEN/game_plugins/CUSA12345/a.sprx","/elsewhere/CUSA12345/a.elf"})assert(!port_game_plugin_path(path,&title));
+    assert(port_game_plugin_path("/data/etaHEN/game_plugins/CUSA12345/test.plugin",&title) && title=="CUSA12345");
+    assert(port_game_plugin_path("/data/etaHEN/game_plugins/PPSA12345/test.plugin",&title));
+    for(const char *path:{"/data/etaHEN/game_plugins/NPXS40047/test.plugin","/data/etaHEN/game_plugins/CUSA12345/../a.elf","/data/etaHEN/game_plugins/CUSA1234/test.plugin","/data/etaHEN/game_plugins/CUSA12345/a.elf.auto_start","/data/etaHEN/game_plugins/CUSA12345/a.sprx","/elsewhere/CUSA12345/a.elf"})assert(!port_game_plugin_path(path,&title));
     unsigned char elf[128] = {0};
     memcpy(elf, "\177ELF\2\1\1", 7);
     elf[16]=3; elf[18]=62; elf[52]=64; elf[54]=56; elf[56]=1;
@@ -34,10 +34,13 @@ int main(int argc,char **argv) {
     u64(elf+80,UINT64_MAX-10);assert(!port_plugin_parse("a.elf",elf,128,128,&info));u64(elf+80,0);
     u64(elf+112,3);assert(!port_plugin_parse("a.elf",elf,128,128,&info));u64(elf+112,0);
     unsigned char plugin[157]={0};
-    memcpy(plugin,"etaHEN_PLUGIN",14); memcpy(plugin+14,"TEST12345",10);memcpy(plugin+24,"1.0",4);
+    memcpy(plugin,"etaHEN_PLUGIN",14); memcpy(plugin+14,"TEST12345",10);memcpy(plugin+24,"1.00",5);
     memcpy(plugin+29,elf,128);
     assert(port_plugin_parse("a.plugin",plugin,157,157,&info));
-    assert(!strcmp(info.identity,"TEST12345") && !strcmp(info.version,"1.0") && info.elf_offset==29);
+    assert(!strcmp(info.identity,"TEST12345") && !strcmp(info.version,"1.00") && info.elf_offset==29);
+    plugin[14]='t';assert(port_plugin_parse("a.plugin",plugin,157,157,&info));plugin[14]='T';
+    plugin[27]=0;assert(!port_plugin_parse("a.plugin",plugin,157,157,&info));plugin[27]='0';
+    assert(!port_plugin_parse("renamed.plugin",elf,128,128,&info));
     plugin[23]='X'; assert(!port_plugin_parse("a.plugin",plugin,157,157,&info));plugin[23]=0;
     plugin[28]='X'; assert(!port_plugin_parse("a.plugin",plugin,157,157,&info));plugin[28]=0;
     plugin[14]='/'; assert(!port_plugin_parse("a.plugin",plugin,157,157,&info));plugin[14]='T';

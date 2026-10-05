@@ -380,9 +380,16 @@ static std::string current_game_fps() {
     char text[32];snprintf(text,sizeof(text),"%.1f",sample.fps);return text;
 }
 
+static std::atomic_bool fps_widgets_dirty{false};
+void InvalidateFpsWidgets(){fps_widgets_dirty.store(true);}
 int get_ip_address(char* ip_address);
 void OnRender_Hook(MonoObject* instance)
 {
+    if(fps_widgets_dirty.exchange(false)){
+        P5Event("FPS render removing previous widgets");
+        RemoveGameWidget(REMOVE_FPS_OVERLAY);
+        P5Event("FPS render removed previous widgets");
+    }
     if(!global_conf.overlay_cpu&&!global_conf.all_cpu_usage&&!global_conf.overlay_gpu&&!global_conf.overlay_ram&&!global_conf.overlay_fps&&!global_conf.overlay_ip&&!global_conf.overlay_kstuff){OnRender_orig(instance);return;}
     static bool Do_Once = false;
     static unsigned int Idle_Thread_ID[8];
@@ -396,7 +403,7 @@ void OnRender_Hook(MonoObject* instance)
     static MonoObject* cpu_usage_value = nullptr;
 
     static MonoObject* ram_value = nullptr;
-    static MonoObject* fps_value = nullptr;
+
 
 
     char GPU_TEMP[32];
@@ -409,17 +416,12 @@ void OnRender_Hook(MonoObject* instance)
     int SOC_temp = 0;
     int CPU_temp = 0;
 
-    if (!Do_Once)
-    {
-#if 1
-        fps_string.store("LOADING");
-#else
-        fps_string.store("NOT SUPPORTED IN THIS BUILD");
-#endif
-	//	shellui_log("string %s", fps_string.load().c_str());
+    static bool cpu_initialized=false;
+    if(!cpu_initialized && (global_conf.overlay_cpu || global_conf.all_cpu_usage)) {
         int Thread_Count = 3072;
         if (!sceKernelGetCpuUsage((Proc_Stats*)&Stat_Data, (int*)&Thread_Count) && Thread_Count > 0)
         {
+            cpu_initialized=true;
             char Thread_Name[0x40];
             int Core_Count = 0;
             for (int i = 0; i < Thread_Count && i<3072; i++)
@@ -431,8 +433,17 @@ void OnRender_Hook(MonoObject* instance)
             }
         }
 
-        rootWidget = Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene", Game, "RootWidget");
-        font = CreateUIFont(22, 0, 0);           // Regular font for values
+    }
+
+    if (!Do_Once)
+    {
+#if 1
+        fps_string.store("LOADING");
+#else
+        fps_string.store("NOT SUPPORTED IN THIS BUILD");
+#endif
+	//	shellui_log("string %s", fps_string.load().c_str());
+        // Widgets obtain the current scene when they are created.
 
         // GPU row - Green label (BOLD), Orange values - Better spacing
         if (global_conf.overlay_cpu) {
@@ -444,9 +455,7 @@ void OnRender_Hook(MonoObject* instance)
         if (global_conf.overlay_gpu) {
             CreateGameWidget(CREATE_GPU_OVERLAY);
         }
-        if (global_conf.overlay_fps) {
-            CreateGameWidget(CREATE_FPS_OVERLAY);
-        }
+
 		if (global_conf.overlay_ip) {
 			CreateGameWidget(CREATE_IP_OVERLAY);
 		}
@@ -540,10 +549,25 @@ void OnRender_Hook(MonoObject* instance)
             Set_Property(mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Label"), ram_value, "Text", mono_string_new(Root_Domain, RAM_STR));
 		}
         if (global_conf.overlay_fps) {
-            // Update FPS value
+            P5Event("FPS render reading sample");
             std::string current_fps = current_game_fps();
-            fps_value = Invoke<MonoObject*>(pui_img, mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Widget"), Get_Property<MonoObject*>(pui_img, "Sce.PlayStation.PUI.UI2", "Scene", Game, "RootWidget"), "FindWidgetByName", mono_string_new(Root_Domain, "id_fps_value"));
-            Set_Property(mono_class_from_name(pui_img, "Sce.PlayStation.PUI.UI2", "Label"), fps_value, "Text", mono_string_new(Root_Domain, current_fps.c_str()));
+            P5Event("FPS render finding current scene");
+            auto fps_root = OverlayRoot();
+            if(fps_root){
+                if(!OverlayFind(fps_root,"id_fps_value")){
+                    P5Event("FPS render creating widgets");
+                    CreateGameWidget(CREATE_FPS_OVERLAY);
+                }
+                P5Event("FPS render updating text");
+                auto label = OverlayFind(fps_root,"id_fps_value");
+                if(label && !OverlayText(label,current_fps.c_str())){
+                    global_conf.overlay_fps=false;
+                    unlink("/system_tmp/fps_enabled");
+                    InvalidateFpsWidgets();
+                    P5Event("FPS disabled after managed UI exception");
+                }
+            }
+            P5Event("FPS render completed");
         }
         wait = 60; // Update every 60 frames
     }
