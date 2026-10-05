@@ -1,4 +1,4 @@
-# Unified development candidate — 2026-10-05 (dev4 FPS render isolation)
+# Unified development candidate — 2026-10-05 (dev5 overlay initialization and external PS4 counter)
 
 This is a local test build, not a public release or website deployment. The controller-startup correction was previously confirmed on 13.60 and 12.40. The combined card/plugin/FPS changes have passed host checks and compilation but are not yet hardware validated.
 
@@ -55,3 +55,12 @@ User confirmed the pinned Toolbox card opens. Enabling FPS and starting GTA V st
 The stalled render function performed synchronous app-service queries and sample-file mapping. This evidence localizes the freeze to that function, but does not identify which individual call blocked. Dev4 removes the whole blocking path from the UI thread: no app-service query is issued by FPS display code, and only a background worker reads bounded sample records. The renderer reads one lock-free fixed-point value with a monotonic expiry. Files are read twice and compared rather than mapped into ShellUI. A newer game record without a valid measurement clears the display instead of retaining an old game's FPS. Freshness is limited by the original sampler timestamp; a blocked reader cannot extend it.
 
 Dev4 passes 16 host checks and requires a fresh console test. FPS remains disabled in the saved console configuration. First verify Toolbox still opens, then enable FPS and start GTA V. Confirm both absence of the system error and an actual numeric reading; a `--` display alone is not a working FPS measurement. Do not resend etaHEN over surviving services following a ShellUI crash; use a fresh boot/jailbreak. No public release, website artifact or YouTube image has been changed.
+
+
+### Dev4 hardware result / Dev5 correction
+
+The user reports GTA V no longer crashes, but no overlay appears; PS4 reports counter initialization failure. Dev4 telemetry contains valid GTA V readings around 30 FPS and a populated UI cache. The overlay root lookup returned null because the initializer declared a local `AppSystem_img`, shadowing the shared variable. Dev5 assigns the shared image, and a regression check covers that initialization wiring.
+
+The PS4 ELF loader failed once loading its entry and once timing out in its remote pthread stager; neither run reached the counter initializer. Dev5 replaces that path with a daemon-owned GNM flip counter following OnionHEN's external-counter model. Only flip exports are accepted (including BC `#`-suffixed names); generic command submissions are not reported as frames. The counter preserves flags, relocates original instructions, installs while target threads are stopped, refuses occupied instruction ranges or existing entry jumps, uses verified COW entry writes, restores protection, and attempts verified rollback on failure. No counter ELF or pthread is started inside the game. A brief startup settling period precedes one installation attempt per game process; failures name their stage. This counts flip submissions, not proof of presented frames for every game.
+
+Both PS5 overlay display and PS4 counter still require dev5 hardware validation. The card opening and dev4 crash-free GTA V result are user observations, not a blanket stability claim. No public release or website update is made by this private candidate.

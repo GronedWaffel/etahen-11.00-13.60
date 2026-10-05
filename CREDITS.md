@@ -35,3 +35,5 @@ Local changes isolate sampling in a separate payload process; gate it on etaHEN 
 ## etaHEN plugin contract
 
 Plugin packaging and daemon lifecycle follow the official [etaHEN-Plugins SDK](https://github.com/etaHEN/etaHEN-Plugins/tree/6339554e4e3c92c0a655a37194c1152d6b82ad88), by LightningMods and contributors (GPLv3). The reference is `lib/make_plugin.py`, the README, and the utility/Game_Plugin_Loader samples. The two local fixture containers match the official packager byte for byte. Our game-targeted directory scheduler is a separate extension; it does not claim universal game mod, SPRX, or OnionHEN SDK compatibility.
+
+The dev5 PS4 FPS counter follows OnionHEN / LightningMods' external GNM-counter approach and tagged export-NID lookup from `source/libonion_fps/source/fps_bc.cpp`, commit `b23ffe674b2de9f62fe634944c9230ff149d593a` (GPL-3.0). This port uses its own allocated trampoline, instruction relocation, flags-preserving atomic count, stopped-thread inspection, and verified COW publication instead of copying instruction bytes into library padding. No in-game ELF or pthread is needed for this counter.

@@ -1185,7 +1185,7 @@ int main(int argc, char const *argv[]) {
       return -1;
     }
 
-    MonoImage * AppSystem_img = getDLLimage(appsystem_dll_name.c_str());
+    AppSystem_img = getDLLimage(appsystem_dll_name.c_str());
     if (!AppSystem_img) {
       notify("Failed to get image 1.5.");
       return -1;

@@ -12,6 +12,7 @@ const flags=diagnostic?[...common,'-DETAHEN_TOOLBOX_DIAGNOSTIC=1']:profile?[...c
 const dirs=[requested+'/'+(requested==='fps_elf'?'src':'source'),'extern/tiny-json','extern/cJSON'];if(requested==='util')dirs.push('util/source/mc4decrypter','extern/pugixml-1.15');
 const files=[];for(const dir of dirs)for(const f of await readdir(path.join(source,dir)))if(/\.(cpp|c|s)$/.test(f))files.push(path.join(source,dir,f));files.push(path.join(source,'lib/backtrace.cpp'));
 if(requested==='daemon'&&!profile&&!diagnostic)await copyFile(path.join(root,'build/shellui/shellui.elf'),path.join(source,'daemon/assets/shellui.elf'));
+if(requested==='daemon')for(const name of ['relocate.cpp','hde64.cpp'])files.push(path.join(source,'shellui/src',name));
 const objects=requested==='fps_elf'?[]:[path.join(root,(diagnostic||profile)?variant+'/pt.c.o':'build/core/libNineS-pt.c.o')];
 if(diagnostic)objects.push(...['port_publish.c.o','port_diagnostic.c.o'].map(f=>path.join(root,variant,f)));
 if(profile)objects.push(path.join(root,'build/startup-profile/port_publish.c.o'));
@@ -21,7 +22,7 @@ for(let file of files){const object=path.join(out,path.relative(source,file).rep
   const text=(await readFile(file,'utf8')).replace('assets/shellui.elf',replacement);
   file=path.join(out,'embedded-trace.c');await writeFile(file,text);
  }
- try{run(['cc',...(file.endsWith('.cpp')?cxx:[]),...flags,'-fexceptions','-I',path.join(source,'include'),'-I',path.join(source,requested,'include'),'-I',path.join(source,'libNidResolver/include'),'-c',file,'-o',object],{cwd:path.join(source,requested)});objects.push(object);console.log('Compiled',path.relative(source,file));}catch(e){await writeFile(path.join(out,'failure.txt'),e.message);console.error(e.message.slice(-9500));process.exit(1);}
+ try{run(['cc',...(file.endsWith('.cpp')?cxx:[]),...flags,'-fexceptions',...(['relocate.cpp','hde64.cpp'].includes(path.basename(file))?['-I',path.join(source,'shellui/include')]:[]),'-I',path.join(source,'include'),'-I',path.join(source,requested,'include'),'-I',path.join(source,'libNidResolver/include'),'-c',file,'-o',object],{cwd:path.join(source,requested)});objects.push(object);console.log('Compiled',path.relative(source,file));}catch(e){await writeFile(path.join(out,'failure.txt'),e.message);console.error(e.message.slice(-9500));process.exit(1);}
 }
 const libraries={fps_elf:['kernel','SceGnmDriver'],daemon:['ScePad','SceSystemService','SceNotification','SceNet','SceRegMgr','SceSysmodule','SceUserService','SceNetCtl','SceSysCore','kernel_sys','SceAppInstUtil'],util:['SceLibcInternal','SceSystemService','SceNet','SceSysmodule','SceUserService','SceNetCtl','SceSysCore','ScePad','SceVideoOut','kernel_sys','SceAppInstUtil','SceHttp2','SceSsl']}[requested];
 const local=['libhijacker','libNidResolver','libNineS','libSelfDecryptor','libelfldr'].map(n=>path.join(root,'build/core/'+n+'.a'));

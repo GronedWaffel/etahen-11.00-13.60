@@ -1,5 +1,6 @@
 #include "relocate.h"
 #include "hde64.h"
+#include "fps_counter_stub.h"
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
@@ -28,6 +29,21 @@ int main(int argc,char** argv){
  DWORD old;assert(VirtualProtect(origin,4096,PAGE_EXECUTE_READ,&old));assert(VirtualProtect(relocated,4096,PAGE_EXECUTE_READ,&old));
  assert(((int(*)())origin)()==123);assert(((int(*)())relocated)()==123);
  VirtualFree(origin,0,MEM_RELEASE);VirtualFree(relocated,0,MEM_RELEASE);
+ // Execute the actual FPS stub: preserve carry and return value, count calls.
+ auto region=(unsigned char*)VirtualAlloc(nullptr,12288,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);assert(region);
+ auto entry=region;auto stub=region+4096;auto counter=(uint64_t*)(region+8192);*counter=0;
+ memset(entry,0x90,64);entry[0]=0xb8;memset(entry+1,0,4);entry[5]=0x83;entry[6]=0xd0;entry[7]=0;entry[14]=0xc3;
+ FpsCounterStub fps;assert(BuildFpsCounterStub(entry,64,(uintptr_t)entry,(uintptr_t)stub,(uintptr_t)counter,&fps));
+ memcpy(stub,fps.bytes,fps.size);
+ // stc/clc followed by an absolute jump into the counter trampoline.
+ auto invoke=region+128;invoke[0]=0xf9;invoke[1]=0xff;invoke[2]=0x25;memset(invoke+3,0,4);auto target=(uint64_t)stub;memcpy(invoke+7,&target,8);
+ assert(VirtualProtect(region,8192,PAGE_EXECUTE_READ,&old));
+ assert(((int(*)())invoke)()==1);assert(*counter==1);
+ assert(((int(*)())invoke)()==1);assert(*counter==2);
+ assert(VirtualProtect(region,4096,PAGE_READWRITE,&old));invoke[0]=0xf8;
+ assert(VirtualProtect(region,4096,PAGE_EXECUTE_READ,&old));
+ assert(((int(*)())invoke)()==0);assert(*counter==3);
+ VirtualFree(region,0,MEM_RELEASE);
 #endif
  puts("relocation tests passed");
 }

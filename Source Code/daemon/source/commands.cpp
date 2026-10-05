@@ -625,11 +625,8 @@ void *fifo_and_dumper_thread(void *args) noexcept {
     port_poll_game_plugins(tid,bappid);
 
     if( if_exists("/system_tmp/fps_enabled") && (tid.rfind("CUSA",0)==0 || tid.rfind("SCUS",0)==0 || tid.rfind("PCAS",0)==0 || tid.rfind("PCJS",0)==0 || tid.rfind("PCKS",0)==0 || tid.rfind("CUHJ",0)==0)){
-        // cmd_enable_fps(bappid);
-        if(is_800)
-          cmd_enable_fps_new(bappid);
-        else
-          cmd_enable_fps(bappid);
+        extern void port_poll_bc_fps(const std::string&,int);
+        port_poll_bc_fps(tid,bappid);
     }
 
     if (is_dumper_enabled) {

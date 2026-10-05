@@ -6,6 +6,8 @@ import path from 'node:path';
 import {root, source, zig} from '../scripts/toolchain.mjs';
 
 test('overlay survives absent scenes and managed exceptions, and follows scene replacement', () => {
+  const startup=readFileSync(path.join(source,'shellui/src/prx.cpp'),'utf8');
+  assert.match(startup,/^\s*AppSystem_img = getDLLimage\(/m,'initialize the shared image; a local shadow leaves the overlay null');
   const implementation=readFileSync(path.join(source,'shellui/src/overlay-ui.cpp'),'utf8').replace(/^#include .*$/gm,'');
   const code=`
 #include <cassert>
