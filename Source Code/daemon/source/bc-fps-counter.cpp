@@ -20,7 +20,7 @@ int pt_getlwps(pid_t,int*,size_t);
 extern int get_game_pid();
 extern void notify(bool,const char*,...);
 namespace {
-struct Counter {int pid;int app;uint64_t address=0,target=0,stub=0,before=0,stamp=0;bool failed=false;};
+struct Counter {int pid;int app;uint64_t address=0,target=0,stub=0,before=0,stamp=0;bool failed=false;int original_protection=-1,installed_protection=-1;};
 std::vector<Counter> counters;
 uint64_t clock_ns(clockid_t id){timespec t{};return clock_gettime(id,&t)?0:uint64_t(t.tv_sec)*1000000000+t.tv_nsec;}
 uint64_t resolve_flip(int pid) {
@@ -75,13 +75,20 @@ bool install(Counter& record,const char** stage) {
     unsigned char check[14];
     *stage="PS4 FPS recheck original entry";
     if(pt_copyout(record.pid,target,check,14)||memcmp(check,before,14))return false;
+    *stage="PS4 FPS read entry protection";
     const int protection=kernel_get_vmem_protection(record.pid,target,14);
     if(protection<0 || !(protection&PROT_EXEC))return false;
+    record.original_protection=protection;
+    const int installed_protection=FpsCounterEntryProtection(protection,PROT_READ,PROT_WRITE);
     *stage="PS4 FPS publish COW entry";
     if(kernel_mprotect(record.pid,target,14,protection|PROT_READ|PROT_WRITE))return false;
     mapping.keep=true; // Until rollback is verified, the entry may reference it.
     bool ok=pt_copyin(record.pid,patch,target,14)==0;
-    if(kernel_mprotect(record.pid,target,14,protection))ok=false;
+    // The FF 25 entry reads its target from target+6. Restoring an XO page
+    // here causes SYSTEM_XO_VIOLATION on the first flip. Keep this COW page RX.
+    if(kernel_mprotect(record.pid,target,14,installed_protection))ok=false;
+    record.installed_protection=kernel_get_vmem_protection(record.pid,target,14);
+    if(record.installed_protection!=installed_protection)ok=false;
     if(pt_copyout(record.pid,target,check,14)||memcmp(check,patch,14))ok=false;
     if(!ok){
         *stage="PS4 FPS entry write failed; rollback";
@@ -119,6 +126,12 @@ void port_poll_bc_fps(const std::string& title,int app) {
         if(clock_ns(CLOCK_MONOTONIC)-counter.stamp<2000000000ull)return;
         const char* stage=nullptr;errno=0;bool ok=install(counter,&stage);
         experimental_event("fps-bc",stage,pid,ok?0:errno);
+        // install() has detached before journal I/O; do not log while stopped.
+        char detail[256];snprintf(detail,sizeof(detail),
+            "PS4 FPS entry permissions original=%d installed=%d target=0x%llx stub=0x%llx",
+            counter.original_protection,counter.installed_protection,
+            (unsigned long long)counter.target,(unsigned long long)counter.stub);
+        experimental_event("fps-bc",detail,pid,0);
         if(!ok){counter.failed=true;notify(true,"PS4 FPS counter unavailable; diagnostic stage saved.");return;}
     }
     uint64_t frames=0,now=clock_ns(CLOCK_MONOTONIC);

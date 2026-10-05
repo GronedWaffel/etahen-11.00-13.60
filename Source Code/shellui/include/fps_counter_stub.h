@@ -3,6 +3,11 @@
 #include "relocate.h"
 #include <string.h>
 #include <limits.h>
+// FF 25 jumps read an inline pointer: their entry page must remain readable.
+// Preserve unrelated protection bits, but never leave publication write access.
+constexpr int FpsCounterEntryProtection(int original,int read,int write) {
+    return (original|read)&~write;
+}
 struct FpsCounterStub {unsigned char bytes[272];size_t size,stolen;};
 inline bool BuildFpsCounterStub(const unsigned char* original,size_t available,
     uint64_t source,uint64_t destination,uint64_t counter,FpsCounterStub* out) {

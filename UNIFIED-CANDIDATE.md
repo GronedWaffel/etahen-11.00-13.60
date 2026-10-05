@@ -28,7 +28,7 @@ Automatic startup still uses a sibling `<filename>.auto_start` marker controlled
 4. Start the game-aware `.plugin` from Toolbox, then launch games. Confirm its game-detected notifications and heartbeat log. Stop it from Toolbox and confirm its PID disappears. This tests daemon lifecycle/game detection, not game-code injection.
 5. Dev1 and dev3 failed the GTA V FPS test. Keep FPS off for card/plugin checks. On a fresh dev4 session, explicitly enable FPS for the separate GTA V test described below; record whether a numeric value appears and whether ShellUI remains responsive.
 
-Native PS5 sampling follows OnionHEN's render/scanout estimation. The PS4 counter counts successful GNM submit/flip calls. Some games may use other paths or multiple submissions, so neither is yet certified for every game. A deliberate 15 FPS test limiter is a later fixture once the relevant game's frame hook has been verified.
+Native PS5 sampling follows OnionHEN's render/scanout estimation. The PS4 counter counts GNM submit/flip calls. Some games may use other paths or multiple submissions, so neither is yet certified for every game. A deliberate 15 FPS test limiter is a later fixture once the relevant game's frame hook has been verified.
 
 ## Diagnostics and rollback
 
@@ -64,3 +64,12 @@ The user reports GTA V no longer crashes, but no overlay appears; PS4 reports co
 The PS4 ELF loader failed once loading its entry and once timing out in its remote pthread stager; neither run reached the counter initializer. Dev5 replaces that path with a daemon-owned GNM flip counter following OnionHEN's external-counter model. Only flip exports are accepted (including BC `#`-suffixed names); generic command submissions are not reported as frames. The counter preserves flags, relocates original instructions, installs while target threads are stopped, refuses occupied instruction ranges or existing entry jumps, uses verified COW entry writes, restores protection, and attempts verified rollback on failure. No counter ELF or pthread is started inside the game. A brief startup settling period precedes one installation attempt per game process; failures name their stage. This counts flip submissions, not proof of presented frames for every game.
 
 Both PS5 overlay display and PS4 counter still require dev5 hardware validation. The card opening and dev4 crash-free GTA V result are user observations, not a blanket stability claim. No public release or website update is made by this private candidate.
+
+
+### Dev5 hardware result / Dev6 PS4 correction
+
+The user confirmed the PS5 FPS display works in WWE, GTA V and Spider-Man. The plugin lifecycle fixture detected the game and stopped when the game closed; it is not a 15 FPS limiter. These are user-reported observations, not certification of every game or third-party plugin.
+
+Two Minecraft PS4 (CUSA00265) attempts installed the remote GNM counter and then failed with SYSTEM_XO_VIOLATION. ShadowMount's notification says "before kstuff auto-pause"; that describes crash timing and does not establish a kstuff failure. The saved crash summaries do not contain a faulting instruction address. Inspection found a matching defect: the entry's FF 25 jump reads an inline pointer, but dev5 restored the original protection, potentially execute-only. Dev6 retains read/execute without write on the private hooked page, checks the resulting protection, and rolls back bytes plus original protection if publication fails. Diagnostics record original/installed protection after detaching. PS5 sampling, UI routing and plugin behavior are unchanged.
+
+All 16 host checks and the full build passed. The executable regression now enters through the actual patched entry before the trampoline, verifies the counter and preserved carry/return value, and covers XO/RX/RWX permission policy. Host execution is not a PS4 execute-only hardware test. Dev6 still needs a fresh console test: load it after a fresh jailbreak without an existing etaHEN instance, enable FPS and launch Minecraft. Verify a numeric counter, normal gameplay and that Toolbox remains accessible. No public release or website changes.
